@@ -7,12 +7,16 @@ import {
   StyleSheet,
   Image,
   ScrollView,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useAuth } from "../context/AuthContext";
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
+  const { signUp, user } = useAuth();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -20,12 +24,41 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
   const [nameFocused, setNameFocused] = useState(false);
   const [phoneFocused, setPhoneFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Monitora autenticação para navegar
+  React.useEffect(() => {
+    if (user) {
+      navigation.navigate("SplashScreen");
+    }
+  }, [user]);
+
+  const handleRegister = async () => {
+    if (!name || !email || !password || !confirmPassword) {
+      Alert.alert("Erro", "Por favor, preencha todos os campos obrigatórios.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Erro", "As senhas não coincidem.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signUp(name, email, password);
+    } catch (error) {
+      Alert.alert("Erro", error.message || "Falha ao criar conta.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -145,11 +178,16 @@ export default function RegisterScreen() {
             </View>
 
             {/* Botão */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.registerButton}
-              onPress={() => navigation.navigate("Login")}
+              onPress={handleRegister}
+              disabled={loading}
             >
-              <Text style={styles.registerButtonText}>Registrar</Text>
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.registerButtonText}>Registrar</Text>
+              )}
             </TouchableOpacity>
 
             {/* Link para login */}

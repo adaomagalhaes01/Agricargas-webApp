@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,22 +7,55 @@ import {
   TouchableOpacity,
   StatusBar,
   Image,
+  Alert,
+  ScrollView,
+  SafeAreaView,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "../context/AuthContext";
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
+  const { user, signOut } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [nome, setNome] = useState("João Silva");
+  const [nome, setNome] = useState(user?.name || "");
   const [telefone, setTelefone] = useState("923456789");
-  const [email, setEmail] = useState("joao.silva@email.com");
+  const [email, setEmail] = useState(user?.email || "");
   const [nif, setNif] = useState("123456789");
   const [empresa, setEmpresa] = useState("Agricargas Lda");
 
+  useEffect(() => {
+    if (user) {
+      setNome(user.name);
+      setEmail(user.email);
+    }
+  }, [user]);
+
   const handleSave = () => {
     setIsEditing(false);
-    // Aqui você salvaria os dados
+    Alert.alert("Sucesso", "Perfil atualizado com sucesso!");
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Sair",
+      "Tem certeza que deseja sair?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Sair",
+          style: "destructive",
+          onPress: () => {
+            signOut();
+            (navigation as any).reset({
+              index: 0,
+              routes: [{ name: "Login" }],
+            });
+          }
+        }
+      ]
+    );
   };
 
   const handleCancel = () => {
@@ -31,123 +64,170 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#000000" />
-        </TouchableOpacity>
+        <View style={{ width: 24 }} />
         <Text style={styles.headerTitle}>Perfil</Text>
         <TouchableOpacity onPress={() => setIsEditing(!isEditing)} style={styles.editButton}>
           <Ionicons name={isEditing ? "close" : "pencil"} size={22} color="#1DD87C" />
         </TouchableOpacity>
       </View>
 
-      {/* Avatar */}
-      <View style={styles.avatarContainer}>
-        <View style={styles.avatarCircle}>
-          <Ionicons name="person" size={50} color="#999" />
-        </View>
-        {isEditing && (
-          <TouchableOpacity style={styles.editAvatarButton}>
-            <Ionicons name="camera" size={18} color="#1DD87C" />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Formulário */}
-      <View style={styles.form}>
-        {/* Nome */}
-        <View style={styles.fieldContainer}>
-          <Text style={styles.label}>Nome</Text>
-          <TextInput
-            style={[styles.input, !isEditing && styles.inputDisabled]}
-            value={nome}
-            onChangeText={setNome}
-            editable={isEditing}
-          />
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.avatarContainer}>
+          <View style={styles.avatarCircle}>
+            <Ionicons name="person" size={50} color="#999" />
+          </View>
+          {isEditing && (
+            <TouchableOpacity style={styles.editAvatarButton}>
+              <Ionicons name="camera" size={18} color="#1DD87C" />
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Telefone */}
-        <View style={styles.fieldContainer}>
-          <Text style={styles.label}>Telefone</Text>
-          <View style={styles.phoneContainer}>
-            <View style={styles.countryCode}>
-              <Image
-                source={{ uri: "https://flagcdn.com/w40/ao.png" }}
-                style={styles.flag}
-              />
-              <Text style={styles.phonePrefix}>+244</Text>
-            </View>
+        {/* Formulário */}
+        <View style={styles.form}>
+          {/* Nome */}
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>Nome</Text>
             <TextInput
-              style={[styles.phoneInput, !isEditing && styles.inputDisabled]}
-              value={telefone}
-              onChangeText={setTelefone}
-              keyboardType="phone-pad"
+              style={[styles.input, !isEditing && styles.inputDisabled]}
+              value={nome}
+              onChangeText={setNome}
+              editable={isEditing}
+            />
+          </View>
+
+          {/* Telefone */}
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>Telefone</Text>
+            <View style={styles.phoneContainer}>
+              <View style={styles.countryCode}>
+                <Image
+                  source={{ uri: "https://flagcdn.com/w40/ao.png" }}
+                  style={styles.flag}
+                />
+                <Text style={styles.phonePrefix}>+244</Text>
+              </View>
+              <TextInput
+                style={[styles.phoneInput, !isEditing && styles.inputDisabled]}
+                value={telefone}
+                onChangeText={setTelefone}
+                keyboardType="phone-pad"
+                editable={isEditing}
+              />
+            </View>
+          </View>
+
+          {/* Email */}
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={[styles.input, !isEditing && styles.inputDisabled]}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable={isEditing}
+            />
+          </View>
+
+          {/* NIF */}
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>NIF</Text>
+            <TextInput
+              style={[styles.input, !isEditing && styles.inputDisabled]}
+              value={nif}
+              onChangeText={setNif}
+              editable={isEditing}
+            />
+          </View>
+
+          {/* Empresa */}
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>Empresa</Text>
+            <TextInput
+              style={[styles.input, !isEditing && styles.inputDisabled]}
+              value={empresa}
+              onChangeText={setEmpresa}
               editable={isEditing}
             />
           </View>
         </View>
 
-        {/* Email */}
-        <View style={styles.fieldContainer}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={[styles.input, !isEditing && styles.inputDisabled]}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            editable={isEditing}
-          />
-        </View>
+        {/* Botões de ação */}
+        {isEditing && (
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={handleCancel}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
 
-        {/* NIF */}
-        <View style={styles.fieldContainer}>
-          <Text style={styles.label}>NIF</Text>
-          <TextInput
-            style={[styles.input, !isEditing && styles.inputDisabled]}
-            value={nif}
-            onChangeText={setNif}
-            editable={isEditing}
-          />
-        </View>
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={handleSave}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.saveButtonText}>Salvar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-        {/* Empresa */}
-        <View style={styles.fieldContainer}>
-          <Text style={styles.label}>Empresa</Text>
-          <TextInput
-            style={[styles.input, !isEditing && styles.inputDisabled]}
-            value={empresa}
-            onChangeText={setEmpresa}
-            editable={isEditing}
-          />
-        </View>
-      </View>
+        {/* Opções de menu - substitui o menu hamburger */}
+        {!isEditing && (
+          <View style={styles.menuSection}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => (navigation as any).navigate("PurchaseHistory")}
+            >
+              <View style={[styles.menuIconCircle, { backgroundColor: "#D4F4E7" }]}>
+                <Ionicons name="receipt-outline" size={18} color="#22C55E" />
+              </View>
+              <Text style={styles.menuItemText}>Histórico de Compra</Text>
+              <Ionicons name="chevron-forward" size={18} color="#ccc" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => (navigation as any).navigate("ValidateProvider")}
+            >
+              <View style={[styles.menuIconCircle, { backgroundColor: "#DBEAFE" }]}>
+                <Ionicons name="shield-checkmark-outline" size={18} color="#3B82F6" />
+              </View>
+              <Text style={styles.menuItemText}>Validar Prestador</Text>
+              <Ionicons name="chevron-forward" size={18} color="#ccc" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => (navigation as any).navigate("Help")}
+            >
+              <View style={[styles.menuIconCircle, { backgroundColor: "#FFF8E1" }]}>
+                <Ionicons name="help-buoy-outline" size={18} color="#F59E0B" />
+              </View>
+              <Text style={styles.menuItemText}>Ajuda</Text>
+              <Ionicons name="chevron-forward" size={18} color="#ccc" />
+            </TouchableOpacity>
+          </View>
+        )}
 
-      {/* Botões de ação */}
-      {isEditing && (
-        <View style={styles.actionButtons}>
+        {/* Botão Sair */}
+        {!isEditing && (
           <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={handleCancel}
-            activeOpacity={0.85}
+            style={styles.logoutButton}
+            onPress={handleLogout}
+            activeOpacity={0.8}
           >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
+            <Ionicons name="log-out-outline" size={20} color="#FF6B6B" />
+            <Text style={styles.logoutButtonText}>Sair da Conta</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={handleSave}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.saveButtonText}>Salvar</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -161,7 +241,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingTop: 16,
     paddingBottom: 15,
   },
   backButton: {
@@ -311,5 +391,55 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "700",
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 20,
+    marginBottom: 40,
+    marginHorizontal: 25,
+    paddingVertical: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#FFE5E5",
+    backgroundColor: "#FFF5F5",
+  },
+  logoutButtonText: {
+    marginLeft: 10,
+    color: "#FF6B6B",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  menuSection: {
+    marginHorizontal: 25,
+    marginTop: 16,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  menuIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  menuItemText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
   },
 });

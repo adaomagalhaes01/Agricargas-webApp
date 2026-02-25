@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import UploadProofModal from "./UploadProofModal";
+import { useTranslation } from "react-i18next";
 
 interface PaymentModalProps {
   visible: boolean;
@@ -23,27 +24,57 @@ export default function PaymentModal({
   totalAmount,
 }: PaymentModalProps) {
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const [paymentModalVisible, setPaymentModalVisible] = useState(true);
+  const { t } = useTranslation();
 
   const handlePaymentClick = () => {
-    setUploadModalVisible(true);
+    // Fecha o modal de pagamento primeiro, depois abre o de upload
+    setPaymentModalVisible(false);
+    setTimeout(() => {
+      setUploadModalVisible(true);
+    }, 300);
   };
 
   const handleUploadConfirm = (file: any) => {
     console.log("Comprovativo enviado:", file);
     setUploadModalVisible(false);
+    setPaymentModalVisible(true);
     onConfirm();
   };
 
   const handleCloseUpload = () => {
     setUploadModalVisible(false);
+    // Reabre o modal de pagamento
+    setTimeout(() => {
+      setPaymentModalVisible(true);
+    }, 300);
   };
+
+  const handleClose = () => {
+    setPaymentModalVisible(true);
+    setUploadModalVisible(false);
+    onClose();
+  };
+
+  // Quando o modal principal fica visível de novo, reseta o estado
+  React.useEffect(() => {
+    if (visible) {
+      setPaymentModalVisible(true);
+      setUploadModalVisible(false);
+    }
+  }, [visible]);
+
+  const showPayment = visible && paymentModalVisible && !uploadModalVisible;
+  const showUpload = uploadModalVisible;
+
   return (
     <>
+      {/* Payment Modal */}
       <Modal
-        visible={visible}
+        visible={showPayment}
         transparent={true}
         animationType="fade"
-        onRequestClose={onClose}
+        onRequestClose={handleClose}
       >
         <View style={styles.overlay}>
           <View style={styles.modalContainer}>
@@ -53,38 +84,38 @@ export default function PaymentModal({
             </View>
 
             {/* Title */}
-            <Text style={styles.title}>Pagamento</Text>
+            <Text style={styles.title}>{t("payment")}</Text>
 
             {/* IBAN */}
             <Text style={styles.iban}>Iban:0040.0000.5312.5104.1015.9</Text>
 
             <Text style={styles.description}>
-              Esse é o iban em que deve realizar a transferência do pagamento do
-              serviço solicitado
+              {t("ibanDescription")}
             </Text>
 
-            {/* Amount */} 
-            <Text style={styles.amount}>Total: {totalAmount}</Text>
+            {/* Amount */}
+            <Text style={styles.amount}>{t("total")} {totalAmount}</Text>
 
             {/* Confirm Button */}
-            <TouchableOpacity 
-              style={styles.confirmButton} 
-              onPress={() => setUploadModalVisible(true)}
+            <TouchableOpacity
+              style={styles.confirmButton}
+              onPress={handlePaymentClick}
+              activeOpacity={0.85}
             >
-              <Text style={styles.confirmButtonText}>Fazer Pagamento</Text>
+              <Text style={styles.confirmButtonText}>{t("makePayment")}</Text>
             </TouchableOpacity>
 
             {/* Close Button */}
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Text style={styles.closeButtonText}>Fechar</Text>
+            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+              <Text style={styles.closeButtonText}>{t("close")}</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* Upload Modal */}
+      {/* Upload Proof Modal */}
       <UploadProofModal
-        visible={uploadModalVisible}
+        visible={showUpload}
         onClose={handleCloseUpload}
         onConfirm={handleUploadConfirm}
       />
@@ -157,6 +188,11 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
     marginBottom: 12,
+    shadowColor: "#22C55E",
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   confirmButtonText: {
     color: "#fff",

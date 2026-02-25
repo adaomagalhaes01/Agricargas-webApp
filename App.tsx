@@ -1,9 +1,14 @@
 import React from "react"
-import LoginScreen from "./src/screens/loginScreen"
 import AppNavigator from "./src/navigation/AppNavigator"
+import { AuthProvider } from "./src/context/AuthContext"
+import "./src/i18n";
 
 export default function App() {
-  return <AppNavigator></AppNavigator>
+  return (
+    <AuthProvider>
+      <AppNavigator />
+    </AuthProvider>
+  )
 }
 
 

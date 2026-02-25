@@ -14,10 +14,11 @@ import SplashScreen from "../screens/SplashScreen";
 import WhoUsingScreen from "../screens/WhoUsingScreen";
 import ChooseProfileScreen from "../screens/ChooseProfileScreen";
 import CompanyNIFScreen from "../screens/CompanyNIFScreen";
-import MainMenuScreen from "../screens/MainMenuScreen";
 import NextStepScreen from "../screens/NextStepScreen";
-import CartScreen from "../screens/CardScreen";
-import ProfileScreen from "../screens/profileScreen";
+import ProductDetailScreen from "../screens/ProductDetailScreen";
+import ValidateProviderScreen from "../screens/ValidateProviderScreen";
+import HelpScreen from "../screens/HelpScreen";
+import BottomTabNavigator from "./BottomTabNavigator";
 
 const Stack = createNativeStackNavigator();
 
@@ -45,18 +46,14 @@ export default function AppNavigator() {
         <Stack.Screen name="ChooseProfile" component={ChooseProfileScreen} />
         <Stack.Screen name="CompanyNIF" component={CompanyNIFScreen} />
 
-        {/* 👤 Perfil do usuário */}
-        <Stack.Screen name="Profile" component={ProfileScreen} />
-
-        {/* 🧭 Telas adicionais */}
-        <Stack.Screen name="MainMenu" component={MainMenuScreen} />
+        {/* 🏠 Telas com Tab Bar (Home, Histórico, Carrinho, Perfil) */}
+        <Stack.Screen name="MainMenu" component={BottomTabNavigator} />
         <Stack.Screen name="NextStep" component={NextStepScreen} />
-        <Stack.Screen 
-          name="Cart" 
-          component={CartScreen}
-          options={{ headerShown: false }}
-        />
 
+        {/* 📋 Telas sem Tab Bar (stack screens) */}
+        <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+        <Stack.Screen name="ValidateProvider" component={ValidateProviderScreen} />
+        <Stack.Screen name="Help" component={HelpScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

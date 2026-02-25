@@ -6,16 +6,40 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useAuth } from "../context/AuthContext";
 
 export default function LoginScreen({ navigation }: any) {
+  const { signIn, signInWithGoogle, user, googleLoading: contextGoogleLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Monitora se o usuário foi autenticado via Google (ou login normal)
+  React.useEffect(() => {
+    if (user) {
+      navigation.navigate("SplashScreen");
+    }
+  }, [user]);
+
+  const handleLogin = async () => {
+    // Sem validações - acesso direto
+    navigation.navigate("SplashScreen");
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      Alert.alert("Erro", "Falha ao iniciar autenticação com Google.");
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -89,9 +113,36 @@ export default function LoginScreen({ navigation }: any) {
         {/* Botão Entrar */}
         <TouchableOpacity
           style={styles.loginButton}
-          onPress={() => navigation.navigate("SplashScreen")}
+          onPress={handleLogin}
+          disabled={loading}
         >
-          <Text style={styles.loginButtonText}>Entrar</Text>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.loginButtonText}>Entrar</Text>
+          )}
+        </TouchableOpacity>
+
+        <View style={styles.dividerContainer}>
+          <View style={styles.divider} />
+          <Text style={styles.dividerText}>ou</Text>
+          <View style={styles.divider} />
+        </View>
+
+        {/* Botão Google */}
+        <TouchableOpacity
+          style={styles.googleButton}
+          onPress={handleGoogleLogin}
+          disabled={contextGoogleLoading}
+        >
+          {contextGoogleLoading ? (
+            <ActivityIndicator color="#000" />
+          ) : (
+            <>
+              <Ionicons name="logo-google" size={20} color="#EA4335" style={styles.googleIcon} />
+              <Text style={styles.googleButtonText}>Entrar com Google</Text>
+            </>
+          )}
         </TouchableOpacity>
 
         {/* Criar conta */}
@@ -221,5 +272,43 @@ const styles = StyleSheet.create({
     color: "#22C55E",
     fontWeight: "bold",
     fontSize: 14,
+  },
+  dividerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#E5E7EB",
+  },
+  dividerText: {
+    paddingHorizontal: 10,
+    color: "#999",
+    fontSize: 14,
+  },
+  googleButton: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  googleIcon: {
+    marginRight: 10,
+  },
+  googleButtonText: {
+    color: "#374151",
+    fontWeight: "600",
+    fontSize: 15,
   },
 });

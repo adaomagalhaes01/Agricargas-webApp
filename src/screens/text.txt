@@ -1,0 +1,33 @@
+Serviço Adicional – Taxi Rent a Car
+
+O Taxi Rent a Car será um módulo adicional do aplicativo Taxi na Via, permitindo o aluguer de viaturas por períodos definidos, com ou sem motorista.
+
+Principais Funcionalidades
+
+Visualização de viaturas disponíveis para aluguer.
+
+Aluguer por horas, dias ou semanas.
+
+Opção de aluguer com ou sem motorista.
+
+Preço estimado antes da confirmação.
+
+Reserva e pagamento pelo aplicativo.
+
+Histórico de alugueres.
+
+Gestão Administrativa
+
+Cadastro e gestão de viaturas.
+
+Definição de tarifas de aluguer.
+
+Relatórios de reservas e faturação.
+
+Benefícios
+
+Ampliação dos serviços da plataforma.
+
+Nova fonte de receita.
+
+Ideal para turismo, empresas e eventos.

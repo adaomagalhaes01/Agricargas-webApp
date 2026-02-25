@@ -10,6 +10,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "react-i18next";
 
 type RootStackParamList = {
   Profile: undefined;
@@ -23,6 +25,8 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function DrawerMenu({ onClose }: { onClose: () => void }) {
   const navigation = useNavigation<NavigationProp>();
+  const { signOut } = useAuth();
+  const { t } = useTranslation();
   const slideAnim = useRef(new Animated.Value(-300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -66,8 +70,9 @@ export default function DrawerMenu({ onClose }: { onClose: () => void }) {
 
   const handleExit = () => {
     handleClose();
+    signOut();
     setTimeout(() => {
-      navigation.navigate("Login");
+      navigation.navigate("Login" as any);
     }, 300);
   };
 
@@ -80,12 +85,12 @@ export default function DrawerMenu({ onClose }: { onClose: () => void }) {
         },
       ]}
     >
-      <TouchableOpacity 
-        style={StyleSheet.absoluteFill} 
-        activeOpacity={1} 
+      <TouchableOpacity
+        style={StyleSheet.absoluteFill}
+        activeOpacity={1}
         onPress={handleClose}
       />
-      
+
       <Animated.View
         style={[
           styles.drawer,
@@ -98,29 +103,29 @@ export default function DrawerMenu({ onClose }: { onClose: () => void }) {
           {/* Botão Voltar */}
           <TouchableOpacity onPress={handleClose} style={styles.backButton}>
             <Ionicons name="arrow-back" size={22} color="#000" />
-            <Text style={styles.backText}>Voltar</Text>
+            <Text style={styles.backText}>{t("back")}</Text>
           </TouchableOpacity>
 
           {/* Itens do Menu */}
           <View style={styles.menuContainer}>
             <TouchableOpacity onPress={() => handleNavigate("Profile")}>
-              <Text style={styles.menuItem}>PERFIL</Text>
+              <Text style={styles.menuItem}>{t("profile")}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => handleNavigate("PurchaseHistory")}>
-              <Text style={styles.menuItem}>HISTÓRICO DE COMPRA</Text>
+              <Text style={styles.menuItem}>{t("purchaseHistory")}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => handleNavigate("ValidateProvider")}>
-              <Text style={styles.menuItem}>VALIDAR PRESTADOR</Text>
+              <Text style={styles.menuItem}>{t("validateProvider")}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => handleNavigate("Help")}>
-              <Text style={styles.menuItem}>AJUDA</Text>
+              <Text style={styles.menuItem}>{t("help")}</Text>
             </TouchableOpacity>
           </View>
 
           {/* Botão Sair */}
           <TouchableOpacity style={styles.exitButton} onPress={handleExit}>
             <Ionicons name="exit-outline" size={18} color="red" />
-            <Text style={styles.exitText}>SAIR DA APLICAÇÃO</Text>
+            <Text style={styles.exitText}>{t("exitApp")}</Text>
           </TouchableOpacity>
         </SafeAreaView>
       </Animated.View>
