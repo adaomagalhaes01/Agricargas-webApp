@@ -1,4 +1,12 @@
-import { DashboardStats, Product, Category, Order, PaymentProof, User } from '../types';
+import { DashboardStats, Product, Category, Order, PaymentProof, User, Vehicle } from '../types';
+
+export const mockVehicles: Vehicle[] = [
+    { id: 'V001', plate: 'LD-45-23-HH', model: 'Toyota Hilux', driver: 'Laurindo Quintas', type: 'carro', status: 'available', registeredAt: '2026-01-10' },
+    { id: 'V002', plate: 'LD-12-88-AF', model: 'Suzuki J-125', driver: 'Miguel Silva', type: 'moto', status: 'in_delivery', registeredAt: '2026-01-15' },
+    { id: 'V003', plate: 'LD-99-11-ZX', model: 'Mitsubishi Fuso', driver: 'Joaquim Dala', type: 'camião', status: 'available', registeredAt: '2026-02-01' },
+    { id: 'V004', plate: 'LD-33-44-BB', model: 'Hyundai H1', driver: 'Paulo Jorge', type: 'carro', status: 'maintenance', registeredAt: '2026-02-10' },
+    { id: 'V005', plate: 'LD-77-55-CC', model: 'Honda XRE', driver: 'Ricardo Neto', type: 'moto', status: 'available', registeredAt: '2026-02-20' },
+];
 
 // Mock data for demo purposes. Replace with real API calls.
 export const mockUsers: User[] = [

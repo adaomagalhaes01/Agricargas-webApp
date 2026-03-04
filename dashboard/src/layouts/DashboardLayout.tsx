@@ -12,6 +12,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
     '/payments': { title: 'Pagamentos', subtitle: 'Comprovantes de pagamento' },
     '/stats': { title: 'Estatísticas', subtitle: 'Análise de desempenho' },
     '/profile': { title: 'O Meu Perfil', subtitle: 'Gestão de conta' },
+    '/carrinhos': { title: 'Carrinhos e Frota', subtitle: 'Gestão de veículos da plataforma' },
 };
 
 export default function DashboardLayout() {

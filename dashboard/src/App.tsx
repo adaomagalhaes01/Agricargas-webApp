@@ -11,6 +11,7 @@ import OrdersPage from './pages/OrdersPage';
 import PaymentsPage from './pages/PaymentsPage';
 import StatsPage from './pages/StatsPage';
 import ProfilePage from './pages/ProfilePage';
+import CarrinhosPage from './pages/CarrinhosPage';
 import React from 'react';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -51,6 +52,7 @@ function App() {
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="stats" element={<StatsPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="carrinhos" element={<CarrinhosPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-    LayoutDashboard, Users, Package, FolderTree, ShoppingCart,
+    LayoutDashboard, Users, Package, FolderTree, ShoppingCart, Truck,
     CreditCard, BarChart3, Settings, LogOut, ChevronLeft, ChevronRight, Menu
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -15,6 +15,7 @@ interface SidebarProps {
 const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/users', label: 'Utilizadores', icon: Users },
+    { path: '/carrinhos', label: 'Carrinhos', icon: Truck },
     { path: '/products', label: 'Produtos', icon: Package },
     { path: '/categories', label: 'Categorias', icon: FolderTree },
     { path: '/orders', label: 'Encomendas', icon: ShoppingCart },

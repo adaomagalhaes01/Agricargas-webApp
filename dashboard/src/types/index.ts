@@ -68,3 +68,12 @@ export interface DashboardStats {
     revenueData: { month: string; value: number }[];
     categoryDistribution: { name: string; value: number }[];
 }
+export interface Vehicle {
+    id: string;
+    plate: string;
+    model: string;
+    driver: string;
+    type: 'moto' | 'carro' | 'camião';
+    status: 'available' | 'in_delivery' | 'maintenance';
+    registeredAt: string;
+}

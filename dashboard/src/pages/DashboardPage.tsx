@@ -1,4 +1,4 @@
-import { Users, Package, ShoppingCart, TrendingUp, CreditCard, UserCheck } from 'lucide-react';
+import { Users, Package, ShoppingCart, TrendingUp, CreditCard, UserCheck, Truck } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { mockStats, mockOrders, formatCurrency, formatDate } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +10,7 @@ const statCards = [
     { label: 'Receita Total', value: formatCurrency(mockStats.totalRevenue), icon: TrendingUp, color: '#F59E0B', bg: '#FFF8E1', change: '+15%' },
     { label: 'Pagamentos Pendentes', value: mockStats.pendingPayments, icon: CreditCard, color: '#EF4444', bg: '#FEE2E2', change: '2 novos' },
     { label: 'Utilizadores Activos', value: mockStats.activeUsers, icon: UserCheck, color: '#06B6D4', bg: '#CFFAFE', change: '93%' },
+    { label: 'Frota Registada', value: '18', icon: Truck, color: '#F43F5E', bg: '#FFE4E6', change: '+2 hoje' },
 ];
 
 const COLORS = ['#22C55E', '#F59E0B', '#3B82F6', '#8B5CF6'];
