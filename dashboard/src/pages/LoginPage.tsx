@@ -15,11 +15,12 @@ export default function LoginPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        if (!email || !password) {
+            setError('Por favor, preencha todos os campos');
+            return;
+        }
         try {
-            // Bypass credentials if empty
-            const loginEmail = email || 'admin@agriroute.ao';
-            const loginPassword = password || 'admin123';
-            await login(loginEmail, loginPassword);
+            await login(email, password);
         } catch (err: any) {
             setError(err.message || 'Erro ao fazer login');
         }

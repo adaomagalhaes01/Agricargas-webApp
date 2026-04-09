@@ -4,7 +4,7 @@ interface AdminUser {
     id: string;
     name: string;
     email: string;
-    role: 'admin';
+    role: string;
     token: string;
 }
 
@@ -38,54 +38,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const login = async (email: string, password: string) => {
         setLoading(true);
         try {
-            // Master Bypass for demo purposes
-            if (!email || email === 'admin@agriroute.ao' || email === 'adaomagalhaes793@gmail.com') {
-                const mockUser: AdminUser = {
-                    id: '1',
-                    name: 'Admin',
-                    email: email || 'admin@agriroute.ao',
-                    role: 'admin',
-                    token: 'mock-token-' + Math.random(),
-                };
-                localStorage.setItem('admin_user', JSON.stringify(mockUser));
-                setUser(mockUser);
-                return;
-            }
-
             const res = await fetch(`${API_URL}/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
             });
 
-            if (res.ok) {
-                const contentType = res.headers.get('content-type');
-                if (contentType && contentType.includes('application/json')) {
-                    const data = await res.json();
-                    const adminUser: AdminUser = {
-                        id: data.user.id,
-                        name: data.user.name,
-                        email: data.user.email,
-                        role: 'admin',
-                        token: data.token,
-                    };
-                    localStorage.setItem('admin_user', JSON.stringify(adminUser));
-                    setUser(adminUser);
-                    return;
-                }
-            }
-            throw new Error('Fallback needed');
-        } catch (error) {
-            console.warn('Login fallback activated:', error);
-            const mockUser: AdminUser = {
-                id: '1',
-                name: 'Admin',
-                email: email || 'admin@agriroute.ao',
-                role: 'admin',
-                token: 'mock-token-' + Math.random(),
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Erro ao entrar');
+
+            const adminUser: AdminUser = {
+                id: data.user.id,
+                name: data.user.name,
+                email: data.user.email,
+                role: data.user.role || 'user',
+                token: data.token,
             };
-            localStorage.setItem('admin_user', JSON.stringify(mockUser));
-            setUser(mockUser);
+
+            localStorage.setItem('admin_user', JSON.stringify(adminUser));
+            setUser(adminUser);
+        } catch (error: any) {
+            console.error('Login error:', error);
+            throw error;
         } finally {
             setLoading(false);
         }
@@ -106,12 +80,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 id: data.user.id,
                 name: data.user.name,
                 email: data.user.email,
-                role: 'admin',
+                role: data.user.role || 'user',
                 token: data.token,
             };
 
             localStorage.setItem('admin_user', JSON.stringify(adminUser));
             setUser(adminUser);
+        } catch (error: any) {
+            console.error('Register error:', error);
+            throw error;
         } finally {
             setLoading(false);
         }

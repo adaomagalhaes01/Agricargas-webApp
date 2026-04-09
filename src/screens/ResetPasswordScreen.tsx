@@ -7,18 +7,81 @@ import {
   StyleSheet,
   Image,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useAuth } from "../context/AuthContext";
 
-export default function ResetPasswordScreen() {
+export default function ResetPasswordScreen({ route }: any) {
   const navigation = useNavigation();
+  const email = route?.params?.email || "";
+  const resetToken = route?.params?.resetToken || "";
+  const { apiUrl } = useAuth();
+
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [newPasswordFocused, setNewPasswordFocused] = useState(false);
   const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleResetPassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      Alert.alert("Erro", "Por favor, preencha todos os campos.");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      Alert.alert("Erro", "A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Erro", "As senhas não coincidem.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          resetToken,
+          newPassword,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Erro ao redefinir senha");
+      }
+
+      Alert.alert(
+        "Sucesso! ✅",
+        "Sua senha foi redefinida com sucesso. Faça login com a nova senha.",
+        [
+          {
+            text: "Ir para Login",
+            onPress: () => {
+              (navigation as any).reset({
+                index: 0,
+                routes: [{ name: "Login" }],
+              });
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert("Erro", error.message || "Falha ao redefinir senha.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -113,12 +176,23 @@ export default function ResetPasswordScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* Password requirements hint */}
+            <View style={styles.hintContainer}>
+              <Ionicons name="information-circle-outline" size={14} color="#999" />
+              <Text style={styles.hintText}>Mínimo de 6 caracteres</Text>
+            </View>
+
             {/* Botão Confirmar Senha */}
             <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={() => navigation.navigate("Login" as never)}
+              style={[styles.confirmButton, loading && { opacity: 0.7 }]}
+              onPress={handleResetPassword}
+              disabled={loading}
             >
-              <Text style={styles.confirmButtonText}>Confirmar Senha</Text>
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.confirmButtonText}>Confirmar Senha</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -233,6 +307,18 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     paddingHorizontal: 12,
+  },
+  hintContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    alignSelf: "flex-start",
+    marginBottom: 20,
+    marginLeft: 4,
+  },
+  hintText: {
+    fontSize: 12,
+    color: "#999",
   },
   confirmButton: {
     width: "100%",

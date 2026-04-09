@@ -8,93 +8,34 @@ import {
   Image,
   SafeAreaView,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import PaymentModal from "./PaymentModal";
 import { useTranslation } from "react-i18next";
-
-interface CartItem {
-  id: string;
-  name: string;
-  unitPrice: number;
-  quantity: number;
-  unit: string;
-  image: any;
-}
-
-const initialCartItems: CartItem[] = [
-  {
-    id: "1",
-    name: "Tomates",
-    unitPrice: 10000,
-    quantity: 5,
-    unit: "kg",
-    image: require("../../assets/tomate.png"),
-  },
-  {
-    id: "2",
-    name: "Cenouras",
-    unitPrice: 10000,
-    quantity: 3,
-    unit: "kg",
-    image: require("../../assets/tomate.png"),
-  },
-  {
-    id: "3",
-    name: "Batatas",
-    unitPrice: 5000,
-    quantity: 10,
-    unit: "kg",
-    image: require("../../assets/tomate.png"),
-  },
-  {
-    id: "4",
-    name: "Cebolas",
-    unitPrice: 8000,
-    quantity: 2,
-    unit: "kg",
-    image: require("../../assets/tomate.png"),
-  },
-  {
-    id: "5",
-    name: "Pimentos",
-    unitPrice: 12000,
-    quantity: 1,
-    unit: "kg",
-    image: require("../../assets/tomate.png"),
-  },
-];
+import { useCart } from "../context/CartContext";
+import { useAuth, API_URL } from "../context/AuthContext";
+import * as FileSystem from 'expo-file-system/legacy';
 
 const formatPrice = (value: number): string => {
-  return value.toLocaleString("pt-AO") + " Kzs";
+  return (value || 0).toLocaleString("pt-AO") + " Kzs";
 };
 
 export default function CartScreen({ navigation }: any) {
   const [modalVisible, setModalVisible] = useState(false);
-  const [cartItems, setCartItems] = useState<CartItem[]>(initialCartItems);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { items: cartItems, updateQuantity, removeFromCart, clearCart, totalPrice, totalItems } = useCart();
+  const { user } = useAuth();
   const { t } = useTranslation();
 
-  const totalItems = cartItems.length;
-  const totalPrice = useMemo(() => {
-    return cartItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0);
-  }, [cartItems]);
-
-  const handleIncrement = (id: string) => {
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, quantity: item.quantity + 1 } : item
-      )
-    );
+  const handleIncrement = (id: string, current: number) => {
+    updateQuantity(id, current + 1);
   };
 
-  const handleDecrement = (id: string) => {
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item.id === id && item.quantity > 1
-          ? { ...item, quantity: item.quantity - 1 }
-          : item
-      )
-    );
+  const handleDecrement = (id: string, current: number) => {
+    if (current > 1) {
+      updateQuantity(id, current - 1);
+    }
   };
 
   const handleRemove = (id: string) => {
@@ -106,17 +47,69 @@ export default function CartScreen({ navigation }: any) {
         {
           text: t("confirm"),
           style: "destructive",
-          onPress: () => {
-            setCartItems((prev) => prev.filter((item) => item.id !== id));
-          },
+          onPress: () => removeFromCart(id),
         },
       ]
     );
   };
 
-  const handlePayment = () => {
+  const handleConfirmOrder = async (address: string, file: any) => {
+    if (!user) {
+      Alert.alert(t("error"), t("loginRequired"));
+      return;
+    }
+
+    setIsSubmitting(true);
     setModalVisible(false);
-    console.log("Pagamento confirmado");
+
+    try {
+      let proofBase64 = null;
+      if (file && file.uri) {
+        try {
+          const base64Content = await FileSystem.readAsStringAsync(file.uri, {
+            encoding: 'base64',
+          });
+
+          // Construct Data URL
+          const mimeType = file.mimeType || (file.uri.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg');
+          proofBase64 = `data:${mimeType};base64,${base64Content}`;
+        } catch (fsError) {
+          console.error("Erro ao ler ficheiro:", fsError);
+        }
+      }
+
+      const orderData = {
+        user_id: user.id,
+        delivery_address: address,
+        total: totalPrice,
+        items: cartItems.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        payment_proof: proofBase64
+      };
+
+      const res = await fetch(`${API_URL}/api/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      });
+
+      if (res.ok) {
+        clearCart();
+        Alert.alert(t("success"), t("orderPlacedSuccess") || "Encomenda realizada com sucesso!");
+        navigation.navigate("MainMenu");
+      } else {
+        const error = await res.json();
+        Alert.alert(t("error"), error.message || "Erro ao processar encomenda");
+      }
+    } catch (error) {
+      console.error("Erro ao enviar encomenda:", error);
+      Alert.alert(t("error"), "Erro de conexão com o servidor");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -125,13 +118,24 @@ export default function CartScreen({ navigation }: any) {
       <PaymentModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
-        onConfirm={handlePayment}
+        onConfirm={handleConfirmOrder}
         totalAmount={formatPrice(totalPrice)}
       />
 
+      {isSubmitting && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#22C55E" />
+          <Text style={styles.loadingText}>{t("processingOrder") || "Processando Encomenda..."}</Text>
+        </View>
+      )}
+
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={24} color="#333" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>{t("cart")}</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       {/* Total Summary */}
@@ -146,7 +150,7 @@ export default function CartScreen({ navigation }: any) {
       <TouchableOpacity
         style={[styles.payButton, totalItems === 0 && styles.payButtonDisabled]}
         onPress={() => totalItems > 0 && setModalVisible(true)}
-        disabled={totalItems === 0}
+        disabled={totalItems === 0 || isSubmitting}
       >
         <Text style={styles.payButtonText}>{t("payNow")}</Text>
       </TouchableOpacity>
@@ -160,20 +164,26 @@ export default function CartScreen({ navigation }: any) {
           contentContainerStyle={styles.listContainer}
           renderItem={({ item }) => (
             <View style={styles.cartItem}>
-              <Image source={item.image} style={styles.itemImage} />
+              {item.image ? (
+                <Image source={{ uri: item.image }} style={styles.itemImage} />
+              ) : (
+                <View style={[styles.itemImage, { backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center' }]}>
+                  <Ionicons name="leaf-outline" size={30} color="#ccc" />
+                </View>
+              )}
               <View style={styles.itemDetails}>
                 <View style={styles.itemTopRow}>
-                  <Text style={styles.itemName}>{item.name}</Text>
+                  <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
                   <TouchableOpacity
                     style={styles.trashButton}
                     onPress={() => handleRemove(item.id)}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    <Ionicons name="trash-outline" size={20} color="#E53935" />
+                    <Ionicons name="trash-outline" size={18} color="#E53935" />
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.itemPrice}>
-                  {formatPrice(item.unitPrice)} / {item.unit}
+                  {formatPrice(item.price)} / {item.unit || 'un'}
                 </Text>
                 <View style={styles.itemBottomRow}>
                   {/* Quantity Counter */}
@@ -183,7 +193,7 @@ export default function CartScreen({ navigation }: any) {
                         styles.counterButton,
                         item.quantity <= 1 && styles.counterButtonDisabled,
                       ]}
-                      onPress={() => handleDecrement(item.id)}
+                      onPress={() => handleDecrement(item.id, item.quantity)}
                       disabled={item.quantity <= 1}
                     >
                       <Ionicons
@@ -195,14 +205,14 @@ export default function CartScreen({ navigation }: any) {
                     <Text style={styles.counterValue}>{item.quantity}</Text>
                     <TouchableOpacity
                       style={styles.counterButton}
-                      onPress={() => handleIncrement(item.id)}
+                      onPress={() => handleIncrement(item.id, item.quantity)}
                     >
                       <Ionicons name="add" size={16} color="#22C55E" />
                     </TouchableOpacity>
                   </View>
                   {/* Subtotal */}
                   <Text style={styles.itemSubtotal}>
-                    {formatPrice(item.unitPrice * item.quantity)}
+                    {formatPrice(item.price * item.quantity)}
                   </Text>
                 </View>
               </View>
@@ -214,6 +224,12 @@ export default function CartScreen({ navigation }: any) {
           <Ionicons name="cart-outline" size={60} color="#ddd" />
           <Text style={styles.emptyText}>{t("emptyCart")}</Text>
           <Text style={styles.emptySubText}>{t("addItemsToCart")}</Text>
+          <TouchableOpacity
+            style={styles.goShopBtn}
+            onPress={() => navigation.navigate("MainMenu")}
+          >
+            <Text style={styles.goShopText}>{t("goShop") || "Ver Produtos"}</Text>
+          </TouchableOpacity>
         </View>
       )}
     </SafeAreaView>
@@ -227,12 +243,16 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "center",
+    justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 12,
     backgroundColor: "#fff",
+  },
+  backBtn: {
+    padding: 8,
+    marginLeft: -10,
   },
   headerTitle: {
     fontSize: 18,
@@ -314,9 +334,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   itemName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "bold",
     color: "#000",
+    maxWidth: "85%",
   },
   trashButton: {
     padding: 4,
@@ -343,8 +364,8 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   counterButton: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
@@ -361,10 +382,10 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   counterValue: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
     color: "#1B5E3F",
-    minWidth: 32,
+    minWidth: 28,
     textAlign: "center",
   },
   itemSubtotal: {
@@ -388,5 +409,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#bbb",
     marginTop: 6,
+    marginBottom: 20,
   },
+  goShopBtn: {
+    backgroundColor: '#22C55E15',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#22C55E30'
+  },
+  goShopText: {
+    color: '#22C55E',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    zIndex: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#22C55E',
+    fontWeight: '600'
+  }
 });

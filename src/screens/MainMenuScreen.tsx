@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -11,99 +11,198 @@ import {
   Dimensions,
   Alert,
   Modal,
+  Animated,
+  Easing,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 
-const categories = [
-  { id: "1", name: "Hortaliças", icon: "leaf-outline", color: "#22C55E", bg: "#D4F4E7" },
-  { id: "2", name: "Frutas", icon: "nutrition-outline", color: "#F59E0B", bg: "#FFF8E1" },
-  { id: "3", name: "Cereais", icon: "grid-outline", color: "#8B5CF6", bg: "#EDE9FE" },
-  { id: "4", name: "Legumes", icon: "flask-outline", color: "#3B82F6", bg: "#DBEAFE" },
-  { id: "5", name: "Todos", icon: "apps-outline", color: "#EF4444", bg: "#FFE5E5" },
-];
+import { API_URL } from "../context/AuthContext";
 
-const allProducts = [
-  {
-    id: "1",
-    name: "Tomates",
-    price: "10.000 Kzs",
-    image: require("../../assets/tomate.png"),
-    rating: 4.5,
-    reviews: 12,
-    category: "Hortaliças",
-    badge: null,
-  },
-  {
-    id: "2",
-    name: "Cenouras",
-    price: "30.000 Kzs",
-    image: require("../../assets/cenoura.png"),
-    rating: 4.8,
-    reviews: 8,
-    category: "Hortaliças",
-    badge: "Mais Vendido",
-  },
-  {
-    id: "3",
-    name: "Tomates Cherry",
-    price: "15.000 Kzs",
-    image: require("../../assets/tomate.png"),
-    rating: 4.2,
-    reviews: 5,
-    category: "Hortaliças",
-    badge: "10% OFF",
-  },
-  {
-    id: "4",
-    name: "Cenouras Baby",
-    price: "25.000 Kzs",
-    image: require("../../assets/cenoura.png"),
-    rating: 5.0,
-    reviews: 15,
-    category: "Legumes",
-    badge: "Mais Vendido",
-  },
-  {
-    id: "5",
-    name: "Tomates Secos",
-    price: "20.000 Kzs",
-    image: require("../../assets/tomate.png"),
-    rating: 4.0,
-    reviews: 3,
-    category: "Frutas",
-    badge: null,
-  },
-  {
-    id: "6",
-    name: "Cenouras Orgânicas",
-    price: "35.000 Kzs",
-    image: require("../../assets/cenoura.png"),
-    rating: 4.9,
-    reviews: 20,
-    category: "Cereais",
-    badge: "Novo",
-  },
-];
+// ── Skeleton Component ──────────────────────────────────────
+const SkeletonPulse = ({ style }: { style: any }) => {
+  const pulseAnim = useRef(new Animated.Value(0.3)).current;
 
-const popularProducts = allProducts.filter(
-  (p) => p.badge === "Mais Vendido" || (p.rating ?? 0) >= 4.5
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.3,
+          duration: 800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, []);
+
+  return (
+    <Animated.View
+      style={[
+        { backgroundColor: "#E8E8E8", borderRadius: 8, overflow: "hidden" },
+        style,
+        { opacity: pulseAnim },
+      ]}
+    />
+  );
+};
+
+const CategoriesSkeleton = () => (
+  <View>
+    <View style={skeletonStyles.sectionHeader}>
+      <SkeletonPulse style={{ width: 100, height: 18 }} />
+    </View>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 18, gap: 12 }}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <View key={i} style={{ alignItems: "center", width: 68 }}>
+          <SkeletonPulse style={{ width: 52, height: 52, borderRadius: 16, marginBottom: 6 }} />
+          <SkeletonPulse style={{ width: 48, height: 10 }} />
+        </View>
+      ))}
+    </ScrollView>
+  </View>
 );
 
+const BannerSkeleton = () => (
+  <View style={{ marginHorizontal: 18, marginTop: 14 }}>
+    <SkeletonPulse style={{ width: "100%", height: 170, borderRadius: 16 }} />
+  </View>
+);
 
+const HorizontalProductsSkeleton = () => (
+  <View>
+    <View style={skeletonStyles.sectionHeader}>
+      <SkeletonPulse style={{ width: 120, height: 18 }} />
+      <SkeletonPulse style={{ width: 50, height: 14 }} />
+    </View>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 18, gap: 12 }}>
+      {[1, 2, 3].map((i) => (
+        <View key={i} style={skeletonStyles.horizontalCard}>
+          <SkeletonPulse style={{ width: "100%", height: 100, borderRadius: 0 }} />
+          <View style={{ padding: 10, gap: 6 }}>
+            <SkeletonPulse style={{ width: "80%", height: 14 }} />
+            <SkeletonPulse style={{ width: "50%", height: 12 }} />
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <SkeletonPulse style={{ width: "45%", height: 14 }} />
+              <SkeletonPulse style={{ width: 28, height: 28, borderRadius: 8 }} />
+            </View>
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  </View>
+);
+
+const ProductsGridSkeleton = () => (
+  <View>
+    <View style={skeletonStyles.sectionHeader}>
+      <SkeletonPulse style={{ width: 110, height: 18 }} />
+      <SkeletonPulse style={{ width: 60, height: 12 }} />
+    </View>
+    <View style={{ flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 12 }}>
+      {[1, 2, 3, 4].map((i) => (
+        <View key={i} style={skeletonStyles.gridCard}>
+          <SkeletonPulse style={{ width: "100%", height: 120, borderRadius: 0 }} />
+          <View style={{ padding: 10, gap: 6 }}>
+            <SkeletonPulse style={{ width: "85%", height: 14 }} />
+            <SkeletonPulse style={{ width: "50%", height: 12 }} />
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <SkeletonPulse style={{ width: "45%", height: 14 }} />
+              <SkeletonPulse style={{ width: 28, height: 28, borderRadius: 8 }} />
+            </View>
+          </View>
+        </View>
+      ))}
+    </View>
+  </View>
+);
+
+const SearchSkeleton = () => (
+  <View style={{ marginHorizontal: 18, marginTop: 10 }}>
+    <SkeletonPulse style={{ width: "100%", height: 46, borderRadius: 12 }} />
+  </View>
+);
 
 export default function MainMenuScreen() {
+  const [categories, setCategories] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
   const [activeCategory, setActiveCategory] = useState("Todos");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const navigation = useNavigation();
   const { user, signOut } = useAuth();
+  const { addToCart, totalItems } = useCart();
   const { t, i18n } = useTranslation();
 
   const currentLang = i18n.language;
+
+  const fetchData = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
+    try {
+      const [cRes, pRes] = await Promise.all([
+        fetch(`${API_URL}/api/categories`),
+        fetch(`${API_URL}/api/products`),
+      ]);
+
+      if (!cRes.ok || !pRes.ok) {
+        throw new Error(`API error: categories=${cRes.status}, products=${pRes.status}`);
+      }
+
+      const [cData, pData] = await Promise.all([cRes.json(), pRes.json()]);
+
+      setCategories([
+        { id: "all", name: "Todos", icon: "apps-outline", color: "#EF4444", bg: "#FFE5E5" },
+        ...(Array.isArray(cData) ? cData : []),
+      ]);
+      setProducts(Array.isArray(pData) ? pData : []);
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+      // Set defaults even on error so UI isn't stuck
+      setCategories([
+        { id: "all", name: "Todos", icon: "apps-outline", color: "#EF4444", bg: "#FFE5E5" },
+      ]);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchData(true);
+  }, [fetchData]);
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchData(true);
+    }, [fetchData])
+  );
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const popularProducts = products.filter(
+    (p) => p.badge === "Mais Vendido" || (p.rating ?? 0) >= 4.5
+  );
 
   const handleLanguageSwitch = () => {
     const targetLang = currentLang === "pt" ? "en" : "pt";
@@ -124,18 +223,22 @@ export default function MainMenuScreen() {
 
   const filteredProducts =
     activeCategory === "Todos"
-      ? allProducts
-      : allProducts.filter((p) => p.category === activeCategory);
+      ? products
+      : products.filter((p) => p.category === activeCategory);
 
   const handleFilterSelect = (categoryName: string) => {
     setActiveCategory(categoryName);
     setFilterModalVisible(false);
   };
 
+  const formatCurrencyLocal = (value: number) => {
+    return `${value.toLocaleString('pt-AO')} Kz`;
+  };
+
   const renderStars = (rating: number) => (
     <View style={styles.starsRow}>
       <Ionicons name="star" size={12} color="#FFD700" />
-      <Text style={styles.ratingNumber}>{rating}</Text>
+      <Text style={styles.ratingNumber}>{rating || '0.0'}</Text>
     </View>
   );
 
@@ -155,12 +258,18 @@ export default function MainMenuScreen() {
             : styles.verticalImageContainer
         }
       >
-        <Image source={item.image} style={styles.productImage} />
+        {item.image ? (
+          <Image source={{ uri: item.image }} style={styles.productImage} />
+        ) : (
+          <View style={[styles.productImage, { backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center' }]}>
+            <Ionicons name="leaf-outline" size={32} color="#ccc" />
+          </View>
+        )}
         {item.badge && (
           <View
             style={[
               styles.badgeTag,
-              item.badge === "10% OFF" ? styles.badgeDiscount : null,
+              item.badge.includes('OFF') ? styles.badgeDiscount : null,
             ]}
           >
             <Text style={styles.badgeText}>{item.badge}</Text>
@@ -173,11 +282,18 @@ export default function MainMenuScreen() {
         </Text>
         <View style={styles.cardMeta}>
           {renderStars(item.rating)}
-          <Text style={styles.reviewCount}>({item.reviews})</Text>
+          <Text style={styles.reviewCount}>({item.reviews || 0})</Text>
         </View>
         <View style={styles.priceRow}>
-          <Text style={styles.productPrice}>{item.price}</Text>
-          <TouchableOpacity style={styles.addBtn}>
+          <Text style={styles.productPrice}>{formatCurrencyLocal(item.price)}</Text>
+          <TouchableOpacity
+            style={styles.addBtn}
+            onPress={(e) => {
+              e.stopPropagation();
+              addToCart(item);
+              Alert.alert(t("success"), `${item.name} ${t("addedToCart")}`);
+            }}
+          >
             <Ionicons name="add" size={16} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -235,7 +351,7 @@ export default function MainMenuScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Header - Logo + Name + Flag */}
+      {/* Header - Logo + Name + Greeting + Flag */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Image
@@ -244,129 +360,194 @@ export default function MainMenuScreen() {
           />
           <Text style={styles.headerAppName}>AgriRoute</Text>
         </View>
-        <TouchableOpacity style={styles.langBtn} onPress={handleLanguageSwitch}>
-          <Image
-            source={
-              currentLang === "pt"
-                ? { uri: "https://flagcdn.com/w40/ao.png" }
-                : { uri: "https://flagcdn.com/w40/us.png" }
-            }
-            style={styles.flagIcon}
-          />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
-        {/* Search */}
-        <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={18} color="#999" />
-          <TextInput
-            placeholder={t("whatYouNeed")}
-            placeholderTextColor="#bbb"
-            style={styles.searchInput}
-          />
-          <TouchableOpacity
-            style={styles.filterBtn}
-            onPress={() => setFilterModalVisible(true)}
-          >
-            <Ionicons name="options-outline" size={18} color="#22C55E" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Banner */}
-        <View style={styles.bannerContainer}>
-          <Image
-            source={require("../../assets/banner.jpg")}
-            style={styles.bannerImage}
-          />
-          <View style={styles.bannerOverlay}>
-            <Text style={styles.bannerTitle}>AgriRoute</Text>
-            <Text style={styles.bannerSubtitle}>
-              {t("bannerText")}
+        <View style={styles.headerRight}>
+          <View style={styles.greetingContainer}>
+            {user?.photo ? (
+              <Image source={{ uri: user.photo }} style={styles.headerAvatar} />
+            ) : (
+              <View style={styles.headerAvatarPlaceholder}>
+                <Ionicons name="person" size={14} color="#22C55E" />
+              </View>
+            )}
+            <Text style={styles.greetingText}>
+              Olá, {user?.name ? user.name.split(" ")[0] : t("user")}
             </Text>
           </View>
-        </View>
-
-        {/* Categories */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t("categoriesTitle")}</Text>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesContainer}
-        >
-          {categories.map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              style={[
-                styles.categoryCard,
-                activeCategory === cat.name && styles.categoryCardActive,
-              ]}
-              onPress={() => setActiveCategory(cat.name)}
-            >
-              <View
-                style={[
-                  styles.categoryIcon,
-                  {
-                    backgroundColor:
-                      activeCategory === cat.name ? cat.color : cat.bg,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={cat.icon as any}
-                  size={22}
-                  color={activeCategory === cat.name ? "#fff" : cat.color}
-                />
-              </View>
-              <Text
-                style={[
-                  styles.categoryName,
-                  activeCategory === cat.name && styles.categoryNameActive,
-                ]}
-              >
-                {cat.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Popular Products */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t("latestUpdates")}</Text>
-          <TouchableOpacity>
-            <Text style={styles.seeAllText}>{t("seeAll")}</Text>
+          <TouchableOpacity style={styles.langBtn} onPress={handleLanguageSwitch}>
+            <Image
+              source={
+                currentLang === "pt"
+                  ? { uri: "https://flagcdn.com/w40/ao.png" }
+                  : { uri: "https://flagcdn.com/w40/us.png" }
+              }
+              style={styles.flagIcon}
+            />
           </TouchableOpacity>
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.horizontalList}
-        >
-          {popularProducts.map((item) => renderProductCard(item, true))}
-        </ScrollView>
+      </View>
 
-        {/* Products by category */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            {activeCategory === "Todos"
-              ? t("allProducts")
-              : activeCategory}
-          </Text>
-          <Text style={styles.resultCount}>
-            {filteredProducts.length} {t("productsCount")}
-          </Text>
-        </View>
-        <View style={styles.productsGrid}>
-          {filteredProducts.map((item) => renderProductCard(item, false))}
-        </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#22C55E"]}
+            tintColor="#22C55E"
+          />
+        }
+      >
+        {loading ? (
+          <View style={{ paddingBottom: 30 }}>
+            <SearchSkeleton />
+            <BannerSkeleton />
+            <CategoriesSkeleton />
+            <HorizontalProductsSkeleton />
+            <ProductsGridSkeleton />
+          </View>
+        ) : (
+          <>
+            {/* Search */}
+            <View style={styles.searchContainer}>
+              <Ionicons name="search-outline" size={18} color="#999" />
+              <TextInput
+                placeholder={t("whatYouNeed")}
+                placeholderTextColor="#bbb"
+                style={styles.searchInput}
+              />
+              <TouchableOpacity
+                style={styles.filterBtn}
+                onPress={() => setFilterModalVisible(true)}
+              >
+                <Ionicons name="options-outline" size={18} color="#22C55E" />
+              </TouchableOpacity>
+            </View>
 
-        <View style={{ height: 20 }} />
+            {/* Banner */}
+            <View style={styles.bannerContainer}>
+              <Image
+                source={require("../../assets/banner.jpg")}
+                style={styles.bannerImage}
+              />
+              <View style={styles.bannerOverlay}>
+                <Text style={styles.bannerTitle}>AgriRoute</Text>
+                <Text style={styles.bannerSubtitle}>
+                  {t("bannerText")}
+                </Text>
+              </View>
+            </View>
+
+            {/* Categories */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>{t("categoriesTitle")}</Text>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoriesContainer}
+            >
+              {categories.map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[
+                    styles.categoryCard,
+                    activeCategory === cat.name && styles.categoryCardActive,
+                  ]}
+                  onPress={() => setActiveCategory(cat.name)}
+                >
+                  <View
+                    style={[
+                      styles.categoryIcon,
+                      {
+                        backgroundColor:
+                          activeCategory === cat.name ? cat.color : cat.bg,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={cat.icon as any}
+                      size={22}
+                      color={activeCategory === cat.name ? "#fff" : cat.color}
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.categoryName,
+                      activeCategory === cat.name && styles.categoryNameActive,
+                    ]}
+                  >
+                    {cat.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Popular Products */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>{t("latestUpdates")}</Text>
+              <TouchableOpacity>
+                <Text style={styles.seeAllText}>{t("seeAll")}</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+            >
+              {popularProducts.map((item) => renderProductCard(item, true))}
+            </ScrollView>
+
+            {/* Products by category */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {activeCategory === "Todos"
+                  ? t("allProducts")
+                  : activeCategory}
+              </Text>
+              <Text style={styles.resultCount}>
+                {filteredProducts.length} {t("productsCount")}
+              </Text>
+            </View>
+            <View style={styles.productsGrid}>
+              {filteredProducts.map((item) => renderProductCard(item, false))}
+            </View>
+
+            <View style={{ height: 20 }} />
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const skeletonStyles = StyleSheet.create({
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  horizontalCard: {
+    width: 155,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+  },
+  gridCard: {
+    width: (width - 48) / 2,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    overflow: "hidden",
+    margin: 6,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+  },
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -414,6 +595,40 @@ const styles = StyleSheet.create({
     width: 22,
     height: 15,
     borderRadius: 2,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  greetingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#F0FFF5",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  headerAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#22C55E",
+  },
+  headerAvatarPlaceholder: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#D4F4E7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  greetingText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#22C55E",
   },
 
   // Search
@@ -513,7 +728,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     resizeMode: "cover",
-    // Position from top to show the face
   },
   bannerOverlay: {
     position: "absolute",
@@ -705,4 +919,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  cartIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F5F7FA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    position: 'relative'
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#EF4444',
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#fff'
+  },
+  cartBadgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: 'bold'
+  }
 });

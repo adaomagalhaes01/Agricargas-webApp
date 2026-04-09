@@ -10,31 +10,130 @@ import {
   Alert,
   ScrollView,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
 import { useAuth } from "../context/AuthContext";
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
-  const { user, signOut } = useAuth();
+  const { user, signOut, updateProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [nome, setNome] = useState(user?.name || "");
-  const [telefone, setTelefone] = useState("923456789");
+  const [telefone, setTelefone] = useState(user?.phone || "");
   const [email, setEmail] = useState(user?.email || "");
-  const [nif, setNif] = useState("123456789");
-  const [empresa, setEmpresa] = useState("Agricargas Lda");
+  const [nif, setNif] = useState(user?.company_nif || "");
+  const [empresa, setEmpresa] = useState(user?.company_name || "");
+  const [photoUri, setPhotoUri] = useState<string | null>(user?.photo || null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (user) {
       setNome(user.name);
       setEmail(user.email);
+      setTelefone(user.phone || "");
+      setNif(user.company_nif || "");
+      setEmpresa(user.company_name || "");
+      setPhotoUri(user.photo || null);
     }
   }, [user]);
 
-  const handleSave = () => {
-    setIsEditing(false);
-    Alert.alert("Sucesso", "Perfil atualizado com sucesso!");
+  const handlePickPhoto = async () => {
+    // Ask permission
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permissão Necessária",
+        "Precisamos de acesso à galeria para selecionar sua foto."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permissão Necessária",
+        "Precisamos de acesso à câmera para tirar a foto."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  };
+
+  const showPhotoOptions = () => {
+    Alert.alert("Foto de Perfil", "Escolha uma opção", [
+      { text: "Tirar Foto", onPress: handleTakePhoto },
+      { text: "Escolher da Galeria", onPress: handlePickPhoto },
+      ...(photoUri
+        ? [
+          {
+            text: "Remover Foto",
+            style: "destructive" as const,
+            onPress: () => setPhotoUri(null),
+          },
+        ]
+        : []),
+      { text: "Cancelar", style: "cancel" as const },
+    ]);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      let finalPhoto = photoUri;
+
+      // Se for um URI local (file://), converter para Base64 para persistência
+      if (photoUri && photoUri.startsWith("file://")) {
+        try {
+          const base64 = await FileSystem.readAsStringAsync(photoUri, {
+            encoding: "base64",
+          });
+          finalPhoto = `data:image/jpeg;base64,${base64}`;
+        } catch (err) {
+          console.error("Erro ao converter imagem p/ base64:", err);
+          // Se falhar o base64, tenta mandar o URI (pode não funcionar depois, mas evita erro agora)
+        }
+      }
+
+      await updateProfile({
+        name: nome,
+        phone: telefone,
+        company_nif: nif,
+        company_name: empresa,
+        photo: finalPhoto || undefined,
+      });
+      setIsEditing(false);
+      Alert.alert("Sucesso", "Perfil atualizado com sucesso!");
+    } catch (error: any) {
+      Alert.alert("Erro", error.message || "Falha ao atualizar perfil.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleLogout = () => {
@@ -48,10 +147,6 @@ export default function ProfileScreen() {
           style: "destructive",
           onPress: () => {
             signOut();
-            (navigation as any).reset({
-              index: 0,
-              routes: [{ name: "Login" }],
-            });
           }
         }
       ]
@@ -60,7 +155,15 @@ export default function ProfileScreen() {
 
   const handleCancel = () => {
     setIsEditing(false);
-    // Aqui você restauraria os valores originais
+    // Restore original values
+    if (user) {
+      setNome(user.name);
+      setEmail(user.email);
+      setTelefone(user.phone || "");
+      setNif(user.company_nif || "");
+      setEmpresa(user.company_name || "");
+      setPhotoUri(user.photo || null);
+    }
   };
 
   return (
@@ -77,15 +180,31 @@ export default function ProfileScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Avatar com foto */}
         <View style={styles.avatarContainer}>
-          <View style={styles.avatarCircle}>
-            <Ionicons name="person" size={50} color="#999" />
-          </View>
-          {isEditing && (
-            <TouchableOpacity style={styles.editAvatarButton}>
-              <Ionicons name="camera" size={18} color="#1DD87C" />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.avatarCircle}
+            onPress={isEditing ? showPhotoOptions : undefined}
+            activeOpacity={isEditing ? 0.7 : 1}
+          >
+            {photoUri ? (
+              <Image source={{ uri: photoUri }} style={styles.avatarImage} />
+            ) : (
+              <Ionicons name="person" size={50} color="#999" />
+            )}
+          </TouchableOpacity>
+
+          {/* Camera button - always visible */}
+          <TouchableOpacity
+            style={styles.editAvatarButton}
+            onPress={showPhotoOptions}
+          >
+            <Ionicons name="camera" size={18} color="#1DD87C" />
+          </TouchableOpacity>
+
+          {/* User name under avatar */}
+          <Text style={styles.avatarName}>{user?.name || "Usuário"}</Text>
+          <Text style={styles.avatarEmail}>{user?.email || ""}</Text>
         </View>
 
         {/* Formulário */}
@@ -104,7 +223,7 @@ export default function ProfileScreen() {
           {/* Telefone */}
           <View style={styles.fieldContainer}>
             <Text style={styles.label}>Telefone</Text>
-            <View style={styles.phoneContainer}>
+            <View style={[styles.phoneContainer, !isEditing && styles.phoneContainerDisabled]}>
               <View style={styles.countryCode}>
                 <Image
                   source={{ uri: "https://flagcdn.com/w40/ao.png" }}
@@ -126,12 +245,11 @@ export default function ProfileScreen() {
           <View style={styles.fieldContainer}>
             <Text style={styles.label}>Email</Text>
             <TextInput
-              style={[styles.input, !isEditing && styles.inputDisabled]}
+              style={[styles.input, styles.inputDisabled]}
               value={email}
-              onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
-              editable={isEditing}
+              editable={false}
             />
           </View>
 
@@ -173,13 +291,18 @@ export default function ProfileScreen() {
               style={styles.saveButton}
               onPress={handleSave}
               activeOpacity={0.85}
+              disabled={saving}
             >
-              <Text style={styles.saveButtonText}>Salvar</Text>
+              {saving ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.saveButtonText}>Salvar</Text>
+              )}
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Opções de menu - substitui o menu hamburger */}
+        {/* Opções de menu */}
         {!isEditing && (
           <View style={styles.menuSection}>
             <TouchableOpacity
@@ -260,25 +383,43 @@ const styles = StyleSheet.create({
     marginTop: 15,
     marginBottom: 25,
     position: "relative",
+    alignItems: "center",
   },
   avatarCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: "#F5F5F5",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#E0E0E0",
+    borderWidth: 3,
+    borderColor: "#22C55E",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  avatarName: {
+    marginTop: 12,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1A1A1A",
+  },
+  avatarEmail: {
+    marginTop: 2,
+    fontSize: 13,
+    color: "#999",
   },
   editAvatarButton: {
     position: "absolute",
-    bottom: 0,
-    right: 0,
+    top: 70,
+    right: -5,
     backgroundColor: "#FFFFFF",
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
@@ -288,9 +429,9 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
   },
   form: {
     paddingHorizontal: 25,
@@ -327,6 +468,9 @@ const styles = StyleSheet.create({
     paddingLeft: 12,
     borderWidth: 1,
     borderColor: "#F5F5F5",
+  },
+  phoneContainerDisabled: {
+    backgroundColor: "#FAFAFA",
   },
   countryCode: {
     flexDirection: "row",

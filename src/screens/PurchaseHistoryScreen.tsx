@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
     View,
     Text,
@@ -11,14 +11,18 @@ import {
     ScrollView,
     Modal,
     Dimensions,
+    Animated,
+    Easing,
+    RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
+import { useAuth, API_URL } from "../context/AuthContext";
 
 const { width } = Dimensions.get("window");
 
-type PurchaseStatus = "entregue" | "pendente" | "cancelado";
+type PurchaseStatus = "delivered" | "confirmed" | "shipped" | "pending" | "cancelled";
 
 interface PurchaseItem {
     id: string;
@@ -28,6 +32,7 @@ interface PurchaseItem {
     date: string;
     status: PurchaseStatus;
     image: any;
+    items?: any[];
     supplier?: string;
     orderNumber?: string;
     paymentMethod?: string;
@@ -35,109 +40,198 @@ interface PurchaseItem {
     notes?: string;
 }
 
-const mockPurchases: PurchaseItem[] = [
-    {
-        id: "1",
-        productName: "Tomates",
-        quantity: "5 kg",
-        price: "10.000 Kzs",
-        date: "22/02/2026",
-        status: "entregue",
-        image: require("../../assets/tomate.png"),
-        supplier: "Fazenda Verde",
-        orderNumber: "AGC-2026-0012",
-        paymentMethod: "Multicaixa Express",
-        deliveryAddress: "Rua Major Kanhangulo, Luanda",
-        notes: "Entrega realizada com sucesso.",
-    },
-    {
-        id: "2",
-        productName: "Cenouras",
-        quantity: "3 kg",
-        price: "30.000 Kzs",
-        date: "20/02/2026",
-        status: "pendente",
-        image: require("../../assets/cenoura.png"),
-        supplier: "AgroLuanda",
-        orderNumber: "AGC-2026-0011",
-        paymentMethod: "Transferência Bancária",
-        deliveryAddress: "Rua da Missão, 45, Luanda",
-        notes: "Aguardando confirmação do fornecedor.",
-    },
-    {
-        id: "3",
-        productName: "Tomates",
-        quantity: "10 kg",
-        price: "20.000 Kzs",
-        date: "18/02/2026",
-        status: "entregue",
-        image: require("../../assets/tomate.png"),
-        supplier: "Fazenda Verde",
-        orderNumber: "AGC-2026-0009",
-        paymentMethod: "Multicaixa Express",
-        deliveryAddress: "Rua Major Kanhangulo, Luanda",
-        notes: "Produto entregue em bom estado.",
-    },
-    {
-        id: "4",
-        productName: "Cenouras",
-        quantity: "2 kg",
-        price: "20.000 Kzs",
-        date: "15/02/2026",
-        status: "cancelado",
-        image: require("../../assets/cenoura.png"),
-        supplier: "CampoFresco",
-        orderNumber: "AGC-2026-0007",
-        paymentMethod: "Multicaixa Express",
-        deliveryAddress: "Av. 4 de Fevereiro, Luanda",
-        notes: "Cancelado pelo cliente - produto indisponível.",
-    },
-    {
-        id: "5",
-        productName: "Tomates",
-        quantity: "8 kg",
-        price: "16.000 Kzs",
-        date: "10/02/2026",
-        status: "entregue",
-        image: require("../../assets/tomate.png"),
-        supplier: "Fazenda Verde",
-        orderNumber: "AGC-2026-0005",
-        paymentMethod: "Pagamento na entrega",
-        deliveryAddress: "Rua Major Kanhangulo, Luanda",
-        notes: "Entrega concluída sem ocorrências.",
-    },
-];
-
 const statusConfig: Record<PurchaseStatus, { label: string; color: string; bg: string; icon: string; iconBg: string }> = {
-    entregue: { label: "Entregue", color: "#1B8A4E", bg: "#D4F4E7", icon: "checkmark-circle", iconBg: "#E8F9EF" },
-    pendente: { label: "Pendente", color: "#D4A017", bg: "#FFF8E1", icon: "time", iconBg: "#FFFCE8" },
-    cancelado: { label: "Cancelado", color: "#E53935", bg: "#FFE5E5", icon: "close-circle", iconBg: "#FFF0F0" },
+    delivered: { label: "Entregue", color: "#1B8A4E", bg: "#D4F4E7", icon: "checkmark-circle", iconBg: "#E8F9EF" },
+    confirmed: { label: "Confirmado", color: "#22C55E", bg: "#D4F4E7", icon: "checkmark-circle-outline", iconBg: "#E8F9EF" },
+    shipped: { label: "Enviado", color: "#3B82F6", bg: "#DBEAFE", icon: "car-outline", iconBg: "#EFF6FF" },
+    pending: { label: "Pendente", color: "#D4A017", bg: "#FFF8E1", icon: "time", iconBg: "#FFFCE8" },
+    cancelled: { label: "Cancelado", color: "#E53935", bg: "#FFE5E5", icon: "close-circle", iconBg: "#FFF0F0" },
 };
 
 type FilterType = "todos" | PurchaseStatus;
 
+// ── Skeleton Component ──────────────────────────────────────
+const SkeletonPulse = ({ style }: { style: any }) => {
+    const pulseAnim = useRef(new Animated.Value(0.3)).current;
+
+    useEffect(() => {
+        const animation = Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulseAnim, {
+                    toValue: 1,
+                    duration: 800,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(pulseAnim, {
+                    toValue: 0.3,
+                    duration: 800,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+        animation.start();
+        return () => animation.stop();
+    }, []);
+
+    return (
+        <Animated.View
+            style={[
+                { backgroundColor: "#E8E8E8", borderRadius: 8, overflow: "hidden" },
+                style,
+                { opacity: pulseAnim },
+            ]}
+        />
+    );
+};
+
+const SummaryCardSkeleton = () => (
+    <View style={styles.summaryCard}>
+        <View style={styles.summaryLeft}>
+            <SkeletonPulse style={{ width: 80, height: 13, marginBottom: 8 }} />
+            <SkeletonPulse style={{ width: 140, height: 24 }} />
+        </View>
+        <View style={styles.summaryRight}>
+            <SkeletonPulse style={{ width: 44, height: 44, borderRadius: 22, marginBottom: 6 }} />
+            <SkeletonPulse style={{ width: 60, height: 12 }} />
+        </View>
+    </View>
+);
+
+const FiltersSkeleton = () => (
+    <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filtersContainer}
+        style={{ flexGrow: 0, marginTop: 16, marginBottom: 10 }}
+    >
+        {[1, 2, 3, 4, 5].map((i) => (
+            <SkeletonPulse
+                key={i}
+                style={{ width: 80 + i * 5, height: 38, borderRadius: 20 }}
+            />
+        ))}
+    </ScrollView>
+);
+
+const PurchaseItemSkeleton = () => (
+    <View style={[styles.card, { opacity: 1 }]}>
+        <SkeletonPulse style={{ width: 65, height: 65, borderRadius: 10 }} />
+        <View style={[styles.cardContent, { gap: 6 }]}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <SkeletonPulse style={{ width: "50%", height: 15 }} />
+                <SkeletonPulse style={{ width: 70, height: 20, borderRadius: 12 }} />
+            </View>
+            <SkeletonPulse style={{ width: "30%", height: 13 }} />
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <SkeletonPulse style={{ width: "35%", height: 14 }} />
+                <SkeletonPulse style={{ width: "25%", height: 12 }} />
+            </View>
+        </View>
+    </View>
+);
+
+const PurchaseListSkeleton = () => (
+    <View style={styles.listContainer}>
+        {[1, 2, 3, 4, 5].map((i) => (
+            <PurchaseItemSkeleton key={i} />
+        ))}
+    </View>
+);
+
 export default function PurchaseHistoryScreen() {
     const navigation = useNavigation();
+    const { user } = useAuth();
+    const { t } = useTranslation();
+
+    const [purchases, setPurchases] = useState<PurchaseItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [activeFilter, setActiveFilter] = useState<FilterType>("todos");
     const [selectedPurchase, setSelectedPurchase] = useState<PurchaseItem | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
-    const { t } = useTranslation();
+
+    const fetchPurchases = useCallback(async () => {
+        if (!user) {
+            setLoading(false);
+            return;
+        }
+        try {
+            const res = await fetch(`${API_URL}/api/orders/user/${user.id}`);
+
+            if (!res.ok) {
+                throw new Error(`API error: status ${res.status}`);
+            }
+
+            const data = await res.json();
+
+            if (!Array.isArray(data)) {
+                throw new Error("Invalid data format from API");
+            }
+
+            // Map backend orders to our format
+            const mapped: PurchaseItem[] = data.map((order: any) => {
+                const firstItem = order.items?.[0];
+                const productImage = firstItem?.productImage;
+
+                return {
+                    id: order.id,
+                    productName: firstItem?.productName || "Encomenda",
+                    quantity: order.items?.length > 1 ? `${order.items.length} itens` : `1 item`,
+                    price: `${(order.total || 0).toLocaleString("pt-AO")} Kzs`,
+                    date: new Date(order.created_at).toLocaleDateString("pt-AO"),
+                    status: order.status || "pending",
+                    image: productImage ? { uri: productImage } : null,
+                    items: order.items,
+                    orderNumber: order.id,
+                    deliveryAddress: order.delivery_address,
+                    paymentMethod: "Transferência Bancária",
+                };
+            });
+
+            setPurchases(mapped);
+        } catch (error) {
+            console.error("Erro ao carregar histórico:", error);
+            setPurchases([]);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    }, [user]);
+
+    useEffect(() => {
+        fetchPurchases();
+    }, [fetchPurchases]);
+
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        fetchPurchases();
+    }, [fetchPurchases]);
+
+    // Refresh data whenever the screen is focused
+    useFocusEffect(
+        useCallback(() => {
+            fetchPurchases();
+        }, [fetchPurchases])
+    );
 
     const filteredPurchases =
         activeFilter === "todos"
-            ? mockPurchases
-            : mockPurchases.filter((p) => p.status === activeFilter);
+            ? purchases
+            : purchases.filter((p) => p.status === activeFilter);
 
     const totalSpent = filteredPurchases.reduce((acc, item) => {
-        const value = parseInt(item.price.replace(/[^0-9]/g, ""), 10);
+        const value = parseInt(item.price.replace(/[^0-9]/g, ""), 10) || 0;
         return acc + value;
     }, 0);
 
     const filters: { key: FilterType; label: string }[] = [
         { key: "todos", label: t("all") },
-        { key: "entregue", label: t("delivered") },
-        { key: "pendente", label: t("pending") },
-        { key: "cancelado", label: t("cancelled") },
+        { key: "pending", label: "Pendentes" },
+        { key: "shipped", label: "Enviados" },
+        { key: "delivered", label: "Entregues" },
+        { key: "cancelled", label: "Cancelados" },
     ];
 
     const openDetail = (item: PurchaseItem) => {
@@ -180,10 +274,16 @@ export default function PurchaseHistoryScreen() {
                         >
                             {/* Product Info */}
                             <View style={modalStyles.productSection}>
-                                <Image
-                                    source={selectedPurchase.image}
-                                    style={modalStyles.productImage}
-                                />
+                                {selectedPurchase.image ? (
+                                    <Image
+                                        source={selectedPurchase.image}
+                                        style={modalStyles.productImage}
+                                    />
+                                ) : (
+                                    <View style={[modalStyles.productImage, { backgroundColor: "#F0F0F0", alignItems: "center", justifyContent: "center" }]}>
+                                        <Ionicons name="cube-outline" size={32} color="#ccc" />
+                                    </View>
+                                )}
                                 <View style={modalStyles.productInfo}>
                                     <Text style={modalStyles.productName}>
                                         {selectedPurchase.productName}
@@ -275,7 +375,7 @@ export default function PurchaseHistoryScreen() {
                                     <View style={{ flex: 1 }}>
                                         <Text style={modalStyles.detailLabel}>{t("supplier")}</Text>
                                         <Text style={modalStyles.detailValue}>
-                                            {selectedPurchase.supplier}
+                                            {selectedPurchase.supplier || "—"}
                                         </Text>
                                     </View>
                                 </View>
@@ -287,7 +387,7 @@ export default function PurchaseHistoryScreen() {
                                     <View style={{ flex: 1 }}>
                                         <Text style={modalStyles.detailLabel}>{t("deliveryAddressLabel")}</Text>
                                         <Text style={modalStyles.detailValue}>
-                                            {selectedPurchase.deliveryAddress}
+                                            {selectedPurchase.deliveryAddress || "—"}
                                         </Text>
                                     </View>
                                 </View>
@@ -320,29 +420,29 @@ export default function PurchaseHistoryScreen() {
         const steps = [
             {
                 key: "ordered",
-                label: t("orderPlaced"),
+                label: t("orderPlaced") || "Encomenda realizada",
                 icon: "receipt-outline" as const,
                 completed: true,
             },
             {
                 key: "confirmed",
-                label: t("orderConfirmed"),
+                label: t("orderConfirmed") || "Pagamento Confirmado",
                 icon: "checkmark-outline" as const,
-                completed: status !== "cancelado",
+                completed: status !== "pending" && status !== "cancelled",
             },
             {
                 key: "shipped",
-                label: status === "cancelado" ? t("orderCancelledStep") : t("orderShipped"),
-                icon: status === "cancelado" ? ("close-outline" as const) : ("car-outline" as const),
-                completed: status === "entregue" || status === "cancelado",
-                isCancelled: status === "cancelado",
+                label: status === "cancelled" ? (t("orderCancelledStep") || "Cancelada") : (t("orderShipped") || "Enviada"),
+                icon: status === "cancelled" ? ("close-outline" as const) : ("car-outline" as const),
+                completed: status === "delivered" || status === "shipped" || status === "cancelled",
+                isCancelled: status === "cancelled",
             },
             {
                 key: "delivered",
-                label: t("orderDeliveredStep"),
+                label: t("orderDeliveredStep") || "Entregue",
                 icon: "home-outline" as const,
-                completed: status === "entregue",
-                hidden: status === "cancelado",
+                completed: status === "delivered",
+                hidden: status === "cancelled",
             },
         ];
 
@@ -414,7 +514,13 @@ export default function PurchaseHistoryScreen() {
                 onPress={() => openDetail(item)}
                 activeOpacity={0.7}
             >
-                <Image source={item.image} style={styles.cardImage} />
+                {item.image ? (
+                    <Image source={item.image} style={styles.cardImage} />
+                ) : (
+                    <View style={[styles.cardImage, { backgroundColor: "#F0F0F0", alignItems: "center", justifyContent: "center" }]}>
+                        <Ionicons name="cube-outline" size={28} color="#ccc" />
+                    </View>
+                )}
                 <View style={styles.cardContent}>
                     <View style={styles.cardHeader}>
                         <Text style={styles.productName}>{item.productName}</Text>
@@ -453,67 +559,80 @@ export default function PurchaseHistoryScreen() {
                 <Text style={styles.headerTitle}>{t("purchaseHistoryTitle")}</Text>
             </View>
 
-            {/* Summary Card */}
-            <View style={styles.summaryCard}>
-                <View style={styles.summaryLeft}>
-                    <Text style={styles.summaryLabel}>{t("totalSpent")}</Text>
-                    <Text style={styles.summaryValue}>
-                        {totalSpent.toLocaleString("pt-AO")} Kzs
-                    </Text>
-                </View>
-                <View style={styles.summaryRight}>
-                    <View style={styles.summaryIconCircle}>
-                        <Ionicons name="receipt-outline" size={24} color="#22C55E" />
-                    </View>
-                    <Text style={styles.summaryCount}>{filteredPurchases.length} {t("purchases")}</Text>
-                </View>
-            </View>
-
-            {/* Filters */}
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filtersContainer}
-                style={{ flexGrow: 0, marginTop: 16, marginBottom: 10 }}
-            >
-                {filters.map((filter) => (
-                    <TouchableOpacity
-                        key={filter.key}
-                        style={[
-                            styles.filterChip,
-                            activeFilter === filter.key && styles.filterChipActive,
-                        ]}
-                        onPress={() => setActiveFilter(filter.key)}
-                    >
-                        <Text
-                            style={[
-                                styles.filterChipText,
-                                activeFilter === filter.key && styles.filterChipTextActive,
-                            ]}
-                        >
-                            {filter.label}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
-
-            {/* Purchase List */}
-            {filteredPurchases.length > 0 ? (
-                <FlatList
-                    data={filteredPurchases}
-                    keyExtractor={(item) => item.id}
-                    renderItem={renderPurchaseItem}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.listContainer}
-                />
+            {loading ? (
+                <ScrollView showsVerticalScrollIndicator={false}>
+                    <SummaryCardSkeleton />
+                    <FiltersSkeleton />
+                    <PurchaseListSkeleton />
+                </ScrollView>
             ) : (
-                <View style={styles.emptyContainer}>
-                    <Ionicons name="bag-outline" size={60} color="#ddd" />
-                    <Text style={styles.emptyText}>{t("noPurchases")}</Text>
-                    <Text style={styles.emptySubText}>
-                        {t("purchasesWillAppear")}
-                    </Text>
-                </View>
+                <>
+                    {/* Summary Card */}
+                    <View style={styles.summaryCard}>
+                        <View style={styles.summaryLeft}>
+                            <Text style={styles.summaryLabel}>{t("totalSpent")}</Text>
+                            <Text style={styles.summaryValue}>
+                                {totalSpent.toLocaleString("pt-AO")} Kzs
+                            </Text>
+                        </View>
+                        <View style={styles.summaryRight}>
+                            <View style={styles.summaryIconCircle}>
+                                <Ionicons name="receipt-outline" size={24} color="#22C55E" />
+                            </View>
+                            <Text style={styles.summaryCount}>{filteredPurchases.length} {t("purchases")}</Text>
+                        </View>
+                    </View>
+
+                    {/* Filters */}
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.filtersContainer}
+                        style={{ flexGrow: 0, marginTop: 16, marginBottom: 10 }}
+                    >
+                        {filters.map((filter) => (
+                            <TouchableOpacity
+                                key={filter.key}
+                                style={[
+                                    styles.filterChip,
+                                    activeFilter === filter.key && styles.filterChipActive,
+                                ]}
+                                onPress={() => setActiveFilter(filter.key)}
+                            >
+                                <Text
+                                    style={[
+                                        styles.filterChipText,
+                                        activeFilter === filter.key && styles.filterChipTextActive,
+                                    ]}
+                                >
+                                    {filter.label}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+
+                    {/* Purchase List */}
+                    {filteredPurchases.length > 0 ? (
+                        <FlatList
+                            data={filteredPurchases}
+                            keyExtractor={(item) => item.id}
+                            renderItem={renderPurchaseItem}
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={styles.listContainer}
+                            refreshControl={
+                                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#22C55E"]} />
+                            }
+                        />
+                    ) : (
+                        <View style={[styles.emptyContainer, { flex: 1 }]}>
+                            <Ionicons name="bag-outline" size={60} color="#ddd" />
+                            <Text style={styles.emptyText}>{t("noPurchases")}</Text>
+                            <Text style={styles.emptySubText}>
+                                {t("purchasesWillAppear")}
+                            </Text>
+                        </View>
+                    )}
+                </>
             )}
         </SafeAreaView>
     );

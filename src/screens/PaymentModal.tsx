@@ -5,6 +5,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   Modal,
+  TextInput,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import UploadProofModal from "./UploadProofModal";
@@ -13,7 +17,7 @@ import { useTranslation } from "react-i18next";
 interface PaymentModalProps {
   visible: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (address: string, file: any) => void;
   totalAmount: string;
 }
 
@@ -25,9 +29,14 @@ export default function PaymentModal({
 }: PaymentModalProps) {
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(true);
+  const [address, setAddress] = useState("");
   const { t } = useTranslation();
 
   const handlePaymentClick = () => {
+    if (!address.trim()) {
+      alert(t("addressRequired") || "Por favor, insira o endereço de entrega");
+      return;
+    }
     // Fecha o modal de pagamento primeiro, depois abre o de upload
     setPaymentModalVisible(false);
     setTimeout(() => {
@@ -36,10 +45,9 @@ export default function PaymentModal({
   };
 
   const handleUploadConfirm = (file: any) => {
-    console.log("Comprovativo enviado:", file);
     setUploadModalVisible(false);
     setPaymentModalVisible(true);
-    onConfirm();
+    onConfirm(address, file);
   };
 
   const handleCloseUpload = () => {
@@ -73,44 +81,67 @@ export default function PaymentModal({
       <Modal
         visible={showPayment}
         transparent={true}
-        animationType="fade"
+        animationType="slide"
         onRequestClose={handleClose}
       >
-        <View style={styles.overlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.overlay}
+        >
           <View style={styles.modalContainer}>
-            {/* Icon */}
-            <View style={styles.iconContainer}>
-              <Ionicons name="wallet-outline" size={60} color="#22C55E" />
-            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center' }}>
+              {/* Icon */}
+              <View style={styles.iconContainer}>
+                <Ionicons name="location-outline" size={60} color="#22C55E" />
+              </View>
 
-            {/* Title */}
-            <Text style={styles.title}>{t("payment")}</Text>
+              {/* Title */}
+              <Text style={styles.title}>{t("deliveryInfo") || "Informações de Entrega"}</Text>
 
-            {/* IBAN */}
-            <Text style={styles.iban}>Iban:0040.0000.5312.5104.1015.9</Text>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>{t("deliveryAddress") || "Endereço de Entrega"}</Text>
+                <TextInput
+                  style={styles.addressInput}
+                  placeholder={t("addressPlaceholder") || "Ex: Bairro Talatona, Rua 5, Luanda"}
+                  value={address}
+                  onChangeText={setAddress}
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
 
-            <Text style={styles.description}>
-              {t("ibanDescription")}
-            </Text>
+              <View style={styles.divider} />
 
-            {/* Amount */}
-            <Text style={styles.amount}>{t("total")} {totalAmount}</Text>
+              <View style={styles.iconContainerSmall}>
+                <Ionicons name="wallet-outline" size={30} color="#22C55E" />
+              </View>
 
-            {/* Confirm Button */}
-            <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={handlePaymentClick}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.confirmButtonText}>{t("makePayment")}</Text>
-            </TouchableOpacity>
+              {/* IBAN */}
+              <Text style={styles.iban}>Iban:0040.0000.5312.5104.1015.9</Text>
 
-            {/* Close Button */}
-            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-              <Text style={styles.closeButtonText}>{t("close")}</Text>
-            </TouchableOpacity>
+              <Text style={styles.description}>
+                {t("ibanDescription")}
+              </Text>
+
+              {/* Amount */}
+              <Text style={styles.amount}>{t("total")} {totalAmount}</Text>
+
+              {/* Confirm Button */}
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={handlePaymentClick}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.confirmButtonText}>{t("makePayment")}</Text>
+              </TouchableOpacity>
+
+              {/* Close Button */}
+              <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+                <Text style={styles.closeButtonText}>{t("close")}</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Upload Proof Modal */}
@@ -127,64 +158,97 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
+    justifyContent: "flex-end",
   },
   modalContainer: {
     backgroundColor: "#fff",
-    borderRadius: 16,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     padding: 24,
     width: "100%",
-    maxWidth: 400,
-    alignItems: "center",
+    maxHeight: "85%",
     shadowColor: "#000",
     shadowOpacity: 0.25,
     shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: -4 },
     elevation: 5,
   },
   iconContainer: {
-    width: 100,
-    height: 100,
+    width: 90,
+    height: 90,
     backgroundColor: "#E8F8F0",
-    borderRadius: 50,
+    borderRadius: 45,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  iconContainerSmall: {
+    width: 60,
+    height: 60,
+    backgroundColor: "#E8F8F0",
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
   },
   title: {
     fontSize: 22,
     fontWeight: "bold",
     color: "#000",
-    marginBottom: 12,
+    marginBottom: 20,
+  },
+  inputContainer: {
+    width: "100%",
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#666",
+    marginBottom: 8,
+  },
+  addressInput: {
+    backgroundColor: "#F5F7FA",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    fontSize: 15,
+    color: "#333",
+    textAlignVertical: "top",
+    minHeight: 80,
+  },
+  divider: {
+    width: "100%",
+    height: 1,
+    backgroundColor: "#F0F0F0",
+    marginBottom: 20,
   },
   iban: {
     fontSize: 14,
     fontWeight: "600",
     color: "#333",
-    marginBottom: 12,
+    marginBottom: 8,
     textAlign: "center",
   },
   description: {
-    fontSize: 13,
-    color: "#666",
+    fontSize: 12,
+    color: "#888",
     textAlign: "center",
-    lineHeight: 20,
-    marginBottom: 16,
+    lineHeight: 18,
+    marginBottom: 12,
     paddingHorizontal: 10,
   },
   amount: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
     color: "#22C55E",
     marginBottom: 20,
   },
   confirmButton: {
     backgroundColor: "#22C55E",
-    borderRadius: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
+    borderRadius: 12,
+    paddingVertical: 16,
     width: "100%",
     alignItems: "center",
     marginBottom: 12,
@@ -201,9 +265,11 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     paddingVertical: 10,
+    marginBottom: 20,
   },
   closeButtonText: {
-    color: "#666",
+    color: "#999",
     fontSize: 14,
+    fontWeight: "500",
   },
 });

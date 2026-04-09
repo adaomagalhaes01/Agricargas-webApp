@@ -14,6 +14,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
+import { useCart } from "../context/CartContext";
 
 const { width } = Dimensions.get("window");
 
@@ -22,6 +23,7 @@ export default function ProductDetailScreen() {
     const route = useRoute();
     const product = (route.params as any)?.product;
     const { t } = useTranslation();
+    const { addToCart } = useCart();
 
     const [quantity, setQuantity] = useState(1);
     const [isFavorite, setIsFavorite] = useState(false);
@@ -35,18 +37,25 @@ export default function ProductDetailScreen() {
         );
     }
 
-    const priceNumber = parseInt(product.price?.replace(/[^0-9]/g, "") || "0", 10);
+    const priceNumber = typeof product.price === 'number'
+        ? product.price
+        : parseInt(product.price?.replace(/[^0-9]/g, "") || "0", 10);
     const totalPrice = priceNumber * quantity;
 
     const incrementQuantity = () => setQuantity((q: number) => q + 1);
     const decrementQuantity = () => setQuantity((q: number) => (q > 1 ? q - 1 : 1));
 
     const handleAddToCart = () => {
+        addToCart(product, quantity);
         Alert.alert(
-            t("addedToCart"),
-            `${quantity}x ${product.name} ${t("addedToCartMsg")}`,
-            [{ text: t("ok") }]
+            t("success") || "Sucesso",
+            `${quantity}x ${product.name} ${t("addedToCartMsg") || "adicionados ao carrinho"}`,
+            [{ text: t("ok"), onPress: () => navigation.goBack() }]
         );
+    };
+
+    const formatCurrencyLocal = (value: number) => {
+        return `${(value || 0).toLocaleString('pt-AO')} Kz`;
     };
 
     return (
@@ -56,7 +65,11 @@ export default function ProductDetailScreen() {
             <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
                 {/* Product Image - Full width hero */}
                 <View style={styles.imageWrapper}>
-                    <Image source={product.image} style={styles.productImage} />
+                    {typeof product.image === 'string' ? (
+                        <Image source={{ uri: product.image }} style={styles.productImage} />
+                    ) : (
+                        <Image source={product.image} style={styles.productImage} />
+                    )}
 
                     {/* Overlay Header Buttons */}
                     <View style={styles.headerOverlay}>
@@ -118,7 +131,7 @@ export default function ProductDetailScreen() {
                     {/* Stats Row - Price/Weight/Category */}
                     <View style={styles.statsRow}>
                         <View style={styles.statCard}>
-                            <Text style={styles.statValue}>{product.price}</Text>
+                            <Text style={styles.statValue}>{formatCurrencyLocal(priceNumber)}</Text>
                             <Text style={styles.statLabel}>{t("price")}</Text>
                         </View>
                         <View style={styles.statDivider} />
@@ -213,7 +226,7 @@ export default function ProductDetailScreen() {
                         </TouchableOpacity>
                     </View>
                     <View>
-                        <Text style={styles.totalLabel}>{totalPrice.toLocaleString("pt-AO")} Kzs</Text>
+                        <Text style={styles.totalLabel}>{formatCurrencyLocal(totalPrice)}</Text>
                         <Text style={styles.totalSub}>Total {quantity} item(s)</Text>
                     </View>
                 </View>

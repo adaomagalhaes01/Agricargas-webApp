@@ -7,9 +7,11 @@ import {
   TouchableOpacity,
   ImageBackground,
   StatusBar,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useAuth } from "../context/AuthContext";
 
 // 🔹 Tipagem das rotas principais
 type RootStackParamList = {
@@ -20,7 +22,29 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, "NextStep">;
 
 export default function CompanyNIFScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { completeOnboarding } = useAuth();
   const [nif, setNif] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleNext = async () => {
+    if (!nif.trim()) {
+      alert("Por favor, informe o NIF.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await completeOnboarding({
+        profile_type: "company",
+        company_nif: nif,
+      });
+      navigation.navigate("NextStep" as any);
+    } catch (error: any) {
+      alert(error.message || "Erro ao salvar dados.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ImageBackground
@@ -29,7 +53,7 @@ export default function CompanyNIFScreen() {
       resizeMode="cover"
     >
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      
+
       <View style={styles.overlay} />
 
       <View style={styles.container}>
@@ -62,11 +86,16 @@ export default function CompanyNIFScreen() {
         <View style={styles.bottomSection}>
           {/* Botão Avançar */}
           <TouchableOpacity
-            style={styles.nextButton}
-            onPress={() => navigation.navigate("NextStep")}
+            style={[styles.nextButton, loading && { opacity: 0.7 }]}
+            onPress={handleNext}
             activeOpacity={0.85}
+            disabled={loading}
           >
-            <Text style={styles.nextButtonText}>Avançar →</Text>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.nextButtonText}>Avançar →</Text>
+            )}
           </TouchableOpacity>
 
           {/* Barra de progresso */}
@@ -174,7 +203,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     overflow: "hidden",
   },
-  
+
   progressBar: {
     width: "75%",
     height: "100%",

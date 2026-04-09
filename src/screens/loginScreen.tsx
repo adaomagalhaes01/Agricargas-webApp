@@ -29,8 +29,20 @@ export default function LoginScreen({ navigation }: any) {
   }, [user]);
 
   const handleLogin = async () => {
-    // Sem validações - acesso direto
-    navigation.navigate("SplashScreen");
+    if (!email.trim() || !password.trim()) {
+      Alert.alert("Erro", "Por favor, preencha o email e a senha.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signIn(email.trim(), password);
+      // Navigation happens automatically via the useEffect watching `user`
+    } catch (error: any) {
+      Alert.alert("Erro", error.message || "Falha ao entrar. Verifique suas credenciais.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogleLogin = async () => {

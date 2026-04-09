@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Search, MoreVertical, Shield, UserX, UserCheck } from 'lucide-react';
-import { mockUsers, formatDate } from '../data/mockData';
+import { useState, useEffect } from 'react';
+import { Search, MoreVertical, Shield, UserX, UserCheck, Loader2 } from 'lucide-react';
+import { formatDate } from '../data/mockData';
+import { User } from '../types';
 
 const statusColors: Record<string, string> = {
     active: 'badge-success',
@@ -12,10 +13,31 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function UsersPage() {
+    const [users, setUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState<'all' | 'active' | 'inactive' | 'blocked'>('all');
 
-    const filtered = mockUsers
+    useEffect(() => {
+        fetchUsers();
+    }, []);
+
+    const fetchUsers = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('/api/users');
+            if (!res.ok) throw new Error('Erro ao carregar utilizadores');
+            const data = await res.json();
+            setUsers(data);
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const filtered = users
         .filter(u => filter === 'all' || u.status === filter)
         .filter(u => u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()));
 
@@ -24,9 +46,15 @@ export default function UsersPage() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                 <div>
                     <h2 className="text-xl font-bold text-secondary">Utilizadores</h2>
-                    <p className="text-sm text-gray-400">{mockUsers.length} utilizadores registados</p>
+                    <p className="text-sm text-gray-400">{users.length} utilizadores registados</p>
                 </div>
             </div>
+
+            {error && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-6">
+                    <p className="text-red-400 text-sm">{error}</p>
+                </div>
+            )}
 
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -54,7 +82,12 @@ export default function UsersPage() {
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-2xl border border-border overflow-hidden">
+            <div className="bg-white rounded-2xl border border-border overflow-hidden relative min-h-[400px]">
+                {loading && (
+                    <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                        <Loader2 className="animate-spin text-primary" size={32} />
+                    </div>
+                )}
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>

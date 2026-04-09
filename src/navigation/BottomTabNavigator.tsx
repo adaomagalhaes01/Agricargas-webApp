@@ -7,9 +7,13 @@ import PurchaseHistoryScreen from "../screens/PurchaseHistoryScreen";
 import CartScreen from "../screens/CardScreen";
 import ProfileScreen from "../screens/profileScreen";
 
+import { useCart } from "../context/CartContext";
+
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabNavigator() {
+    const { totalItems } = useCart();
+
     return (
         <Tab.Navigator
             screenOptions={({ route }) => ({
@@ -46,9 +50,11 @@ export default function BottomTabNavigator() {
                         return (
                             <View>
                                 <Ionicons name={iconName} size={22} color={color} />
-                                <View style={styles.cartBadge}>
-                                    <Text style={styles.cartBadgeText}>3</Text>
-                                </View>
+                                {totalItems > 0 && (
+                                    <View style={styles.cartBadge}>
+                                        <Text style={styles.cartBadgeText}>{totalItems}</Text>
+                                    </View>
+                                )}
                             </View>
                         );
                     }

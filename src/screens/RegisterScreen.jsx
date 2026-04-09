@@ -52,7 +52,7 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      await signUp(name, email, password);
+      await signUp(name, email, password, phone);
     } catch (error) {
       Alert.alert("Erro", error.message || "Falha ao criar conta.");
     } finally {

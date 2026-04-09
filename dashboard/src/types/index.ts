@@ -13,6 +13,7 @@ export interface Product {
     name: string;
     price: number;
     category: string;
+    category_id?: string;
     image?: string;
     description?: string;
     stock: number;
@@ -64,6 +65,7 @@ export interface DashboardStats {
     totalRevenue: number;
     pendingPayments: number;
     activeUsers: number;
+    totalVehicles?: number;
     recentOrders: Order[];
     revenueData: { month: string; value: number }[];
     categoryDistribution: { name: string; value: number }[];

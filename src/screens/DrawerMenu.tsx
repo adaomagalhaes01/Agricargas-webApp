@@ -71,9 +71,6 @@ export default function DrawerMenu({ onClose }: { onClose: () => void }) {
   const handleExit = () => {
     handleClose();
     signOut();
-    setTimeout(() => {
-      navigation.navigate("Login" as any);
-    }, 300);
   };
 
   return (
