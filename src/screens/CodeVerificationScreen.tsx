@@ -8,9 +8,11 @@ import {
   ImageBackground,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 
 export default function CodeVerificationScreen({ navigation }: any) {
   const [otp, setOtp] = useState(["", "", "", "", ""]);
+  const { t } = useTranslation();
 
   const handleOtpChange = (value: string, index: number) => {
     const newOtp = [...otp];
@@ -43,10 +45,10 @@ export default function CodeVerificationScreen({ navigation }: any) {
 
         {/* Conteúdo principal */}
         <View style={styles.content}>
-          <Text style={styles.title}>CÓDIGO DE CONFIRMAÇÃO</Text>
+          <Text style={styles.title}>{t("codeConfirmation")}</Text>
           <Text style={styles.subtitle}>
-            Introduza o código de confirmação que acabámos de enviar{"\n"}
-            para o número +244 934****98
+            {t("codeConfirmationSubtitle")}{"\n"}
+            +244 934****98
           </Text>
 
           <View style={styles.otpContainer}>
@@ -66,14 +68,14 @@ export default function CodeVerificationScreen({ navigation }: any) {
   style={styles.confirmButton}
   onPress={() => navigation.navigate("TermsAndPrivacy")}
 >
-  <Text style={styles.confirmText}>Confirmar</Text>
+  <Text style={styles.confirmText}>{t("confirm")}</Text>
 </TouchableOpacity>
 
 
           <TouchableOpacity style={styles.resendButton}>
             <Text style={styles.resendText}>
-              Não recebeu o código?{" "}
-              <Text style={styles.resendLink}>Enviar novamente</Text>
+              {t("didntReceiveCode")}{" "}
+              <Text style={styles.resendLink}>{t("resend")}</Text>
             </Text>
           </TouchableOpacity>
         </View>

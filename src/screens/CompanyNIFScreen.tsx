@@ -12,6 +12,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "react-i18next";
 
 // 🔹 Tipagem das rotas principais
 type RootStackParamList = {
@@ -23,12 +24,13 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, "NextStep">;
 export default function CompanyNIFScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { completeOnboarding } = useAuth();
+  const { t } = useTranslation();
   const [nif, setNif] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleNext = async () => {
     if (!nif.trim()) {
-      alert("Por favor, informe o NIF.");
+      alert(t("enterNif"));
       return;
     }
 
@@ -40,7 +42,7 @@ export default function CompanyNIFScreen() {
       });
       navigation.navigate("NextStep" as any);
     } catch (error: any) {
-      alert(error.message || "Erro ao salvar dados.");
+      alert(error.message || t("saveDataFailed"));
     } finally {
       setLoading(false);
     }
@@ -60,20 +62,17 @@ export default function CompanyNIFScreen() {
         {/* Conteúdo central */}
         <View style={styles.content}>
           <Text style={styles.title}>
-            Olá, <Text style={styles.highlight}>Empresário</Text>
+            <Text style={styles.highlight}>{t("greetingCompany")}</Text>
           </Text>
-          <Text style={styles.subtitle}>Como está?</Text>
+          <Text style={styles.subtitle}>{t("howAreYou")}</Text>
 
           <Text style={styles.description}>
-            Informe o NIF da sua empresa para
-          </Text>
-          <Text style={styles.description}>
-            prosseguirmos.
+            {t("companyNifDesc")}
           </Text>
 
           <TextInput
             style={styles.input}
-            placeholder="NIF"
+            placeholder={t("nifPlaceholder")}
             placeholderTextColor="#999"
             value={nif}
             onChangeText={setNif}
@@ -94,7 +93,7 @@ export default function CompanyNIFScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.nextButtonText}>Avançar →</Text>
+              <Text style={styles.nextButtonText}>{t("advance")}</Text>
             )}
           </TouchableOpacity>
 

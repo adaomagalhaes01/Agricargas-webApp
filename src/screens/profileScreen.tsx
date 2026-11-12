@@ -17,10 +17,12 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "react-i18next";
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const { user, signOut, updateProfile } = useAuth();
+  const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [nome, setNome] = useState(user?.name || "");
   const [telefone, setTelefone] = useState(user?.phone || "");
@@ -46,8 +48,8 @@ export default function ProfileScreen() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert(
-        "Permissão Necessária",
-        "Precisamos de acesso à galeria para selecionar sua foto."
+        t("permissionNeeded"),
+        t("galleryPermission")
       );
       return;
     }
@@ -68,8 +70,8 @@ export default function ProfileScreen() {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
       Alert.alert(
-        "Permissão Necessária",
-        "Precisamos de acesso à câmera para tirar a foto."
+        t("permissionNeeded"),
+        t("cameraPermission")
       );
       return;
     }
@@ -86,19 +88,19 @@ export default function ProfileScreen() {
   };
 
   const showPhotoOptions = () => {
-    Alert.alert("Foto de Perfil", "Escolha uma opção", [
-      { text: "Tirar Foto", onPress: handleTakePhoto },
-      { text: "Escolher da Galeria", onPress: handlePickPhoto },
+    Alert.alert(t("profilePhoto"), t("chooseOption"), [
+      { text: t("takePhoto"), onPress: handleTakePhoto },
+      { text: t("chooseGallery"), onPress: handlePickPhoto },
       ...(photoUri
         ? [
           {
-            text: "Remover Foto",
+            text: t("removePhoto"),
             style: "destructive" as const,
             onPress: () => setPhotoUri(null),
           },
         ]
         : []),
-      { text: "Cancelar", style: "cancel" as const },
+      { text: t("cancel"), style: "cancel" as const },
     ]);
   };
 
@@ -115,7 +117,7 @@ export default function ProfileScreen() {
           });
           finalPhoto = `data:image/jpeg;base64,${base64}`;
         } catch (err) {
-          console.error("Erro ao converter imagem p/ base64:", err);
+          console.error("Failed to convert image to base64:", err);
           // Se falhar o base64, tenta mandar o URI (pode não funcionar depois, mas evita erro agora)
         }
       }
@@ -128,9 +130,9 @@ export default function ProfileScreen() {
         photo: finalPhoto || undefined,
       });
       setIsEditing(false);
-      Alert.alert("Sucesso", "Perfil atualizado com sucesso!");
+      Alert.alert(t("success"), t("profileUpdated"));
     } catch (error: any) {
-      Alert.alert("Erro", error.message || "Falha ao atualizar perfil.");
+      Alert.alert(t("error"), error.message || t("updateProfileFailed"));
     } finally {
       setSaving(false);
     }
@@ -138,12 +140,12 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     Alert.alert(
-      "Sair",
-      "Tem certeza que deseja sair?",
+      t("logout"),
+      t("logoutConfirm"),
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: t("cancel"), style: "cancel" },
         {
-          text: "Sair",
+          text: t("logoutBtn"),
           style: "destructive",
           onPress: () => {
             signOut();
@@ -173,7 +175,7 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={{ width: 24 }} />
-        <Text style={styles.headerTitle}>Perfil</Text>
+        <Text style={styles.headerTitle}>{t("profileTitle")}</Text>
         <TouchableOpacity onPress={() => setIsEditing(!isEditing)} style={styles.editButton}>
           <Ionicons name={isEditing ? "close" : "pencil"} size={22} color="#1DD87C" />
         </TouchableOpacity>
@@ -203,7 +205,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
 
           {/* User name under avatar */}
-          <Text style={styles.avatarName}>{user?.name || "Usuário"}</Text>
+          <Text style={styles.avatarName}>{user?.name || t("user")}</Text>
           <Text style={styles.avatarEmail}>{user?.email || ""}</Text>
         </View>
 
@@ -211,7 +213,7 @@ export default function ProfileScreen() {
         <View style={styles.form}>
           {/* Nome */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Nome</Text>
+            <Text style={styles.label}>{t("name")}</Text>
             <TextInput
               style={[styles.input, !isEditing && styles.inputDisabled]}
               value={nome}
@@ -222,7 +224,7 @@ export default function ProfileScreen() {
 
           {/* Telefone */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Telefone</Text>
+            <Text style={styles.label}>{t("phone")}</Text>
             <View style={[styles.phoneContainer, !isEditing && styles.phoneContainerDisabled]}>
               <View style={styles.countryCode}>
                 <Image
@@ -243,7 +245,7 @@ export default function ProfileScreen() {
 
           {/* Email */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>{t("email")}</Text>
             <TextInput
               style={[styles.input, styles.inputDisabled]}
               value={email}
@@ -266,7 +268,7 @@ export default function ProfileScreen() {
 
           {/* Empresa */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Empresa</Text>
+            <Text style={styles.label}>{t("company")}</Text>
             <TextInput
               style={[styles.input, !isEditing && styles.inputDisabled]}
               value={empresa}
@@ -284,7 +286,7 @@ export default function ProfileScreen() {
               onPress={handleCancel}
               activeOpacity={0.85}
             >
-              <Text style={styles.cancelButtonText}>Cancelar</Text>
+              <Text style={styles.cancelButtonText}>{t("cancel")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -296,7 +298,7 @@ export default function ProfileScreen() {
               {saving ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
-                <Text style={styles.saveButtonText}>Salvar</Text>
+                <Text style={styles.saveButtonText}>{t("save")}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -312,7 +314,7 @@ export default function ProfileScreen() {
               <View style={[styles.menuIconCircle, { backgroundColor: "#D4F4E7" }]}>
                 <Ionicons name="receipt-outline" size={18} color="#22C55E" />
               </View>
-              <Text style={styles.menuItemText}>Histórico de Compra</Text>
+              <Text style={styles.menuItemText}>{t("purchaseHistoryTitle")}</Text>
               <Ionicons name="chevron-forward" size={18} color="#ccc" />
             </TouchableOpacity>
             <TouchableOpacity
@@ -322,7 +324,7 @@ export default function ProfileScreen() {
               <View style={[styles.menuIconCircle, { backgroundColor: "#DBEAFE" }]}>
                 <Ionicons name="shield-checkmark-outline" size={18} color="#3B82F6" />
               </View>
-              <Text style={styles.menuItemText}>Validar Prestador</Text>
+              <Text style={styles.menuItemText}>{t("validateProviderTitle")}</Text>
               <Ionicons name="chevron-forward" size={18} color="#ccc" />
             </TouchableOpacity>
             <TouchableOpacity
@@ -332,7 +334,7 @@ export default function ProfileScreen() {
               <View style={[styles.menuIconCircle, { backgroundColor: "#FFF8E1" }]}>
                 <Ionicons name="help-buoy-outline" size={18} color="#F59E0B" />
               </View>
-              <Text style={styles.menuItemText}>Ajuda</Text>
+              <Text style={styles.menuItemText}>{t("helpTitle")}</Text>
               <Ionicons name="chevron-forward" size={18} color="#ccc" />
             </TouchableOpacity>
           </View>
@@ -346,7 +348,7 @@ export default function ProfileScreen() {
             activeOpacity={0.8}
           >
             <Ionicons name="log-out-outline" size={20} color="#FF6B6B" />
-            <Text style={styles.logoutButtonText}>Sair da Conta</Text>
+            <Text style={styles.logoutButtonText}>{t("logout")}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>

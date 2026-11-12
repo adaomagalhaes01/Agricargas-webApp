@@ -11,9 +11,11 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "react-i18next";
 
 export default function LoginScreen({ navigation }: any) {
   const { signIn, signInWithGoogle, googleLoading: contextGoogleLoading } = useAuth();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -23,7 +25,7 @@ export default function LoginScreen({ navigation }: any) {
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert("Erro", "Por favor, preencha o email e a senha.");
+      Alert.alert(t("error"), t("enterEmailPassword"));
       return;
     }
 
@@ -32,7 +34,7 @@ export default function LoginScreen({ navigation }: any) {
       await signIn(email.trim(), password);
       // Navigation happens automatically via the useEffect watching `user`
     } catch (error: any) {
-      Alert.alert("Erro", error.message || "Falha ao entrar. Verifique suas credenciais.");
+      Alert.alert(t("error"), error.message || t("loginFailed"));
     } finally {
       setLoading(false);
     }
@@ -42,7 +44,7 @@ export default function LoginScreen({ navigation }: any) {
     try {
       await signInWithGoogle();
     } catch (error) {
-      Alert.alert("Erro", "Falha ao iniciar autenticação com Google.");
+      Alert.alert(t("error"), t("googleFailed"));
     }
   };
 
@@ -59,9 +61,9 @@ export default function LoginScreen({ navigation }: any) {
 
       <View style={styles.content}>
         {/* Título e subtítulo */}
-        <Text style={styles.title}>Entrar</Text>
+        <Text style={styles.title}>{t("login")}</Text>
         <Text style={styles.subtitle}>
-          Seja bem vindo, vamos lá entre com seus dados para continuar.
+          {t("loginSubtitle")}
         </Text>
 
         {/* Campo de email */}
@@ -70,7 +72,7 @@ export default function LoginScreen({ navigation }: any) {
             styles.input,
             emailFocused && styles.inputFocused
           ]}
-          placeholder="Email"
+          placeholder={t("email")}
           placeholderTextColor="#999"
           keyboardType="email-address"
           autoCapitalize="none"
@@ -87,7 +89,7 @@ export default function LoginScreen({ navigation }: any) {
         ]}>
           <TextInput
             style={styles.passwordInput}
-            placeholder="Senha"
+            placeholder={t("password")}
             placeholderTextColor="#999"
             secureTextEntry={!showPassword}
             value={password}
@@ -112,7 +114,7 @@ export default function LoginScreen({ navigation }: any) {
           style={styles.forgotButton}
           onPress={() => navigation.navigate("ForgotPassword")}
         >
-          <Text style={styles.forgotText}>Esqueceu a senha?</Text>
+          <Text style={styles.forgotText}>{t("forgotPassword")}</Text>
         </TouchableOpacity>
 
         {/* Botão Entrar */}
@@ -124,13 +126,13 @@ export default function LoginScreen({ navigation }: any) {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.loginButtonText}>Entrar</Text>
+            <Text style={styles.loginButtonText}>{t("login")}</Text>
           )}
         </TouchableOpacity>
 
         <View style={styles.dividerContainer}>
           <View style={styles.divider} />
-          <Text style={styles.dividerText}>ou</Text>
+          <Text style={styles.dividerText}>{t("or")}</Text>
           <View style={styles.divider} />
         </View>
 
@@ -145,16 +147,16 @@ export default function LoginScreen({ navigation }: any) {
           ) : (
             <>
               <Ionicons name="logo-google" size={20} color="#EA4335" style={styles.googleIcon} />
-              <Text style={styles.googleButtonText}>Entrar com Google</Text>
+              <Text style={styles.googleButtonText}>{t("loginWithGoogle")}</Text>
             </>
           )}
         </TouchableOpacity>
 
         {/* Criar conta */}
         <View style={styles.signupContainer}>
-          <Text style={styles.signupText}>Não tem uma conta? </Text>
+          <Text style={styles.signupText}>{t("noAccount")}</Text>
           <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-            <Text style={styles.signupLink}>Criar Conta</Text>
+            <Text style={styles.signupLink}>{t("createAccount")}</Text>
           </TouchableOpacity>
         </View>
       </View>

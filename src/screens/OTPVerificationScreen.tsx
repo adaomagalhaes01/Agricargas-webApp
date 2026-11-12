@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "react-i18next";
 
 export default function OTPVerificationScreen({ navigation, route }: any) {
   const email = route?.params?.email || "";
@@ -22,6 +23,7 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
   const [countdown, setCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const { apiUrl } = useAuth();
+  const { t } = useTranslation();
 
   const inputRefs = useRef<Array<TextInput | null>>([]);
 
@@ -66,7 +68,7 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
     const code = otp.join("");
 
     if (code.length !== 5) {
-      Alert.alert("Erro", "Por favor, insira o código completo de 5 dígitos.");
+      Alert.alert(t("error"), t("otpIncomplete"));
       return;
     }
 
@@ -80,7 +82,7 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || "Código inválido");
+        throw new Error(data.message || t("invalidCode"));
       }
 
       // Navigate to reset password with email and resetToken
@@ -89,7 +91,7 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
         resetToken: data.resetToken,
       });
     } catch (error: any) {
-      Alert.alert("Erro", error.message || "Código inválido ou expirado.");
+      Alert.alert(t("error"), error.message || t("invalidCode"));
     } finally {
       setLoading(false);
     }
@@ -108,7 +110,7 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
       const data = await res.json();
 
       if (res.status === 429) {
-        Alert.alert("Aguarde", data.message);
+        Alert.alert(t("wait"), data.message);
         return;
       }
 
@@ -118,9 +120,9 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
       setOtp(["", "", "", "", ""]);
       inputRefs.current[0]?.focus();
 
-      Alert.alert("Sucesso", "Um novo código foi enviado para o seu email.");
+      Alert.alert(t("success"), t("codeSent"));
     } catch (error: any) {
-      Alert.alert("Erro", "Falha ao reenviar código.");
+      Alert.alert(t("error"), t("resendFailed"));
     } finally {
       setResending(false);
     }
@@ -164,9 +166,9 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
         <View style={styles.centerContainer}>
           <View style={styles.content}>
             <View style={styles.header}>
-              <Text style={styles.title}>Verificar Código</Text>
+              <Text style={styles.title}>{t("otpTitle")}</Text>
               <Text style={styles.subtitle}>
-                Introduza o código OTP de 5 dígitos que enviámos para{"\n"}
+                {t("otpSubtitle")}{"\n"}
                 <Text style={styles.emailHighlight}>{maskedEmail}</Text>
               </Text>
             </View>
@@ -175,7 +177,9 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
               {otp.map((digit, index) => (
                 <TextInput
                   key={index}
-                  ref={(ref) => (inputRefs.current[index] = ref)}
+                  ref={(ref) => {
+                    inputRefs.current[index] = ref;
+                  }}
                   style={[
                     styles.otpInput,
                     focusedIndex === index && styles.otpInputFocused,
@@ -200,7 +204,7 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.confirmButtonText}>Verificar Código</Text>
+                <Text style={styles.confirmButtonText}>{t("verifyCode")}</Text>
               )}
             </TouchableOpacity>
 
@@ -213,12 +217,12 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
                 <ActivityIndicator color="#22C55E" size="small" />
               ) : (
                 <Text style={styles.resendText}>
-                  Não recebeu o código?{" "}
+                  {t("didntReceiveCode")}{" "}
                   {canResend ? (
-                    <Text style={styles.resendLink}>Enviar novamente</Text>
+                    <Text style={styles.resendLink}>{t("resend")}</Text>
                   ) : (
                     <Text style={styles.resendCountdown}>
-                      Reenviar em {countdown}s
+                      {t("resendIn", { count: countdown })}
                     </Text>
                   )}
                 </Text>

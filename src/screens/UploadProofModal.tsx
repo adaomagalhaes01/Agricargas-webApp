@@ -105,7 +105,7 @@ export default function UploadProofModal({
         setSelectedFile(result.assets[0]);
       }
     } catch (error) {
-      console.error("Erro ao selecionar arquivo:", error);
+      console.error("Failed to select file:", error);
       Alert.alert(t("error"), t("selectProofFirst"));
     }
   };

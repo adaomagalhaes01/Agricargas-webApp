@@ -13,12 +13,14 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "react-i18next";
 
 export default function ResetPasswordScreen({ route }: any) {
   const navigation = useNavigation();
   const email = route?.params?.email || "";
   const resetToken = route?.params?.resetToken || "";
   const { apiUrl } = useAuth();
+  const { t } = useTranslation();
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -30,17 +32,17 @@ export default function ResetPasswordScreen({ route }: any) {
 
   const handleResetPassword = async () => {
     if (!newPassword || !confirmPassword) {
-      Alert.alert("Erro", "Por favor, preencha todos os campos.");
+      Alert.alert(t("error"), t("fillAllFields"));
       return;
     }
 
     if (newPassword.length < 6) {
-      Alert.alert("Erro", "A senha deve ter pelo menos 6 caracteres.");
+      Alert.alert(t("error"), t("minChars"));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert("Erro", "As senhas não coincidem.");
+      Alert.alert(t("error"), t("passwordsDontMatch"));
       return;
     }
 
@@ -58,15 +60,15 @@ export default function ResetPasswordScreen({ route }: any) {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || "Erro ao redefinir senha");
+        throw new Error(data.message || t("resetFailed"));
       }
 
       Alert.alert(
-        "Sucesso! ✅",
-        "Sua senha foi redefinida com sucesso. Faça login com a nova senha.",
+        t("success"),
+        t("passwordResetSuccess"),
         [
           {
-            text: "Ir para Login",
+            text: t("goToLogin"),
             onPress: () => {
               (navigation as any).reset({
                 index: 0,
@@ -77,7 +79,7 @@ export default function ResetPasswordScreen({ route }: any) {
         ]
       );
     } catch (error: any) {
-      Alert.alert("Erro", error.message || "Falha ao redefinir senha.");
+      Alert.alert(t("error"), error.message || t("resetFailed"));
     } finally {
       setLoading(false);
     }
@@ -116,10 +118,9 @@ export default function ResetPasswordScreen({ route }: any) {
         <View style={styles.centerContainer}>
           <View style={styles.content}>
             <View style={styles.header}>
-              <Text style={styles.title}>Repor a Senha</Text>
+              <Text style={styles.title}>{t("resetTitle")}</Text>
               <Text style={styles.subtitle}>
-                Crie uma nova senha que seja forte e fácil de lembrar, mas se esquecer
-                pode contar conosco para recuperar novamente!
+                {t("resetSubtitle")}
               </Text>
             </View>
 
@@ -130,7 +131,7 @@ export default function ResetPasswordScreen({ route }: any) {
             ]}>
               <TextInput
                 style={styles.passwordInput}
-                placeholder="Nova senha"
+                placeholder={t("newPassword")}
                 placeholderTextColor="#999"
                 secureTextEntry={!showNewPassword}
                 value={newPassword}
@@ -156,7 +157,7 @@ export default function ResetPasswordScreen({ route }: any) {
             ]}>
               <TextInput
                 style={styles.passwordInput}
-                placeholder="Confirmar nova senha"
+                placeholder={t("confirmNewPassword")}
                 placeholderTextColor="#999"
                 secureTextEntry={!showConfirmPassword}
                 value={confirmPassword}
@@ -179,7 +180,7 @@ export default function ResetPasswordScreen({ route }: any) {
             {/* Password requirements hint */}
             <View style={styles.hintContainer}>
               <Ionicons name="information-circle-outline" size={14} color="#999" />
-              <Text style={styles.hintText}>Mínimo de 6 caracteres</Text>
+              <Text style={styles.hintText}>{t("minChars")}</Text>
             </View>
 
             {/* Botão Confirmar Senha */}
@@ -191,7 +192,7 @@ export default function ResetPasswordScreen({ route }: any) {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.confirmButtonText}>Confirmar Senha</Text>
+                <Text style={styles.confirmButtonText}>{t("confirmPasswordBtn")}</Text>
               )}
             </TouchableOpacity>
           </View>

@@ -29,29 +29,29 @@ interface ProviderInfo {
 
 const mockProviders: Record<string, ProviderInfo> = {
     "123456789": {
-        name: "Fazenda Verde Ltda",
+        name: "Green Farm Ltd",
         nif: "123456789",
-        category: "Hortaliças",
+        category: "Vegetables",
         location: "Luanda, Angola",
-        status: "Ativo",
+        status: "Active",
         rating: 4,
         since: "Jan 2024",
     },
     "987654321": {
         name: "AgroFresh Angola",
         nif: "987654321",
-        category: "Frutas e Legumes",
+        category: "Fruits & Vegetables",
         location: "Benguela, Angola",
-        status: "Ativo",
+        status: "Active",
         rating: 5,
         since: "Mar 2023",
     },
     "111222333": {
-        name: "Prestador Suspenso SA",
+        name: "Suspended Provider SA",
         nif: "111222333",
-        category: "Cereais",
+        category: "Cereals",
         location: "Huambo, Angola",
-        status: "Suspenso",
+        status: "Suspended",
         rating: 2,
         since: "Jun 2025",
     },
@@ -74,7 +74,7 @@ export default function ValidateProviderScreen() {
         setResult("loading");
         setProviderData(null);
 
-        // Simula espera de resposta
+        // Simulate network response
         setTimeout(() => {
             const found = mockProviders[nifInput.trim()];
             if (found) {
@@ -105,7 +105,7 @@ export default function ValidateProviderScreen() {
         </View>
     );
 
-    const isActive = providerData?.status === "Ativo";
+    const isActive = providerData?.status === "Active";
 
     return (
         <SafeAreaView style={styles.container}>
@@ -143,7 +143,7 @@ export default function ValidateProviderScreen() {
                     <Ionicons name="document-text-outline" size={20} color="#999" />
                     <TextInput
                         style={styles.input}
-                        placeholder="Ex: 123456789"
+                        placeholder={t("exampleNif")}
                         placeholderTextColor="#bbb"
                         value={nifInput}
                         onChangeText={setNifInput}

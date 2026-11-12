@@ -8,11 +8,13 @@ import CartScreen from "../screens/CardScreen";
 import ProfileScreen from "../screens/profileScreen";
 
 import { useCart } from "../context/CartContext";
+import { useTranslation } from "react-i18next";
 
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabNavigator() {
     const { totalItems } = useCart();
+    const { t } = useTranslation();
 
     return (
         <Tab.Navigator
@@ -66,22 +68,22 @@ export default function BottomTabNavigator() {
             <Tab.Screen
                 name="HomeTab"
                 component={MainMenuScreen}
-                options={{ tabBarLabel: "Home" }}
+                options={{ tabBarLabel: t("homeTab") }}
             />
             <Tab.Screen
                 name="HistoryTab"
                 component={PurchaseHistoryScreen}
-                options={{ tabBarLabel: "Histórico" }}
+                options={{ tabBarLabel: t("historyTab") }}
             />
             <Tab.Screen
                 name="CartTab"
                 component={CartScreen}
-                options={{ tabBarLabel: "Carrinho" }}
+                options={{ tabBarLabel: t("cartTab") }}
             />
             <Tab.Screen
                 name="ProfileTab"
                 component={ProfileScreen}
-                options={{ tabBarLabel: "Perfil" }}
+                options={{ tabBarLabel: t("profileTab") }}
             />
         </Tab.Navigator>
     );

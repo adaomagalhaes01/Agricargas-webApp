@@ -8,9 +8,11 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 
 export default function TermsAndPrivacyScreen() {
   const navigation = useNavigation();
+  const { t } = useTranslation();
   const [agreed, setAgreed] = useState(false);
 
   return (
@@ -24,16 +26,12 @@ export default function TermsAndPrivacyScreen() {
       </TouchableOpacity>
 
       {/* Cabeçalho */}
-      <Text style={styles.title}>Termo de acordo de uso do utilizador</Text>
+      <Text style={styles.title}>{t("termsTitle")}</Text>
 
       {/* Texto do termo */}
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <Text style={styles.text}>
-          Aceito os termos de acordo utilizador e autorizo o tratamento dos meus dados 
-          de acordo com a política de privacidade. O uso deste aplicativo implica na 
-          aceitação integral destes termos e no consentimento para o processamento dos 
-          meus dados pessoais, conforme previsto nas normas de proteção de dados 
-          aplicáveis.
+          {t("termsText")}
         </Text>
       </ScrollView>
 
@@ -48,7 +46,7 @@ export default function TermsAndPrivacyScreen() {
           color="#1b8f55"
         />
         <Text style={styles.checkboxLabel}>
-          Li e concordo com os termos de política e privacidade.
+          {t("termsAgree")}
         </Text>
       </TouchableOpacity>
 

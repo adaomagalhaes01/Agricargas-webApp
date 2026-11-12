@@ -21,44 +21,6 @@ interface FAQItem {
     answer: string;
 }
 
-const faqData: FAQItem[] = [
-    {
-        id: "1",
-        question: "Como faço para realizar uma compra?",
-        answer:
-            "Para realizar uma compra, navegue pelo catálogo de produtos, selecione os itens desejados, adicione ao carrinho e finalize o pedido seguindo as instruções de pagamento.",
-    },
-    {
-        id: "2",
-        question: "Como posso rastrear meu pedido?",
-        answer:
-            "Acesse a secção 'Histórico de Compra' no menu lateral. Lá poderá ver o estado de cada pedido (Pendente, Entregue ou Cancelado) com todos os detalhes.",
-    },
-    {
-        id: "3",
-        question: "Como validar um prestador ou fornecedor?",
-        answer:
-            "Use a funcionalidade 'Validar Prestador' no menu lateral. Insira o NIF do prestador para verificar se está registado e certificado na plataforma AgriCargas.",
-    },
-    {
-        id: "4",
-        question: "Quais são as formas de pagamento aceites?",
-        answer:
-            "Aceitamos pagamento via Multicaixa Express, transferência bancária e pagamento na entrega. As opções disponíveis são apresentadas no momento do checkout.",
-    },
-    {
-        id: "5",
-        question: "Como posso atualizar meus dados de perfil?",
-        answer:
-            "Acesse o seu Perfil pelo menu lateral, clique no ícone de editar (lápis) no canto superior direito. Após editar as informações, clique em 'Salvar'.",
-    },
-    {
-        id: "6",
-        question: "Posso cancelar um pedido já feito?",
-        answer:
-            "Sim, pode cancelar pedidos com estado 'Pendente'. Acesse o Histórico de Compra, selecione o pedido e clique em cancelar. Pedidos já processados não podem ser cancelados.",
-    },
-];
 
 export default function HelpScreen() {
     const navigation = useNavigation();
@@ -221,7 +183,7 @@ export default function HelpScreen() {
                 <View style={styles.appInfoContainer}>
                     <Text style={styles.appInfoVersion}>AgriCargas v1.0.0</Text>
                     <Text style={styles.appInfoCopyright}>
-                        © 2026 AgriCargas. Todos os direitos reservados.
+                        © 2026 AgriCargas. {t("allRightsReserved")}
                     </Text>
                 </View>
             </ScrollView>

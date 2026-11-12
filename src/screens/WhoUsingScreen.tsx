@@ -7,8 +7,10 @@ import {
   TouchableOpacity,
   StatusBar,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 
 export default function WhoUsingScreen({ navigation }: any) {
+  const { t } = useTranslation();
   return (
     <ImageBackground
       source={require("../../assets/profile-2.png")} 
@@ -22,20 +24,14 @@ export default function WhoUsingScreen({ navigation }: any) {
       <View style={styles.container}>
         <View style={styles.content}>
           <Text style={styles.title}>
-            QUEM ESTÁ
+            {t("whoUsingTitle")}
           </Text>
           <Text style={styles.title}>
-            <Text style={styles.highlight}>USANDO</Text> A NOSSA
-          </Text>
-          <Text style={styles.title}>
-            APLICAÇÃO?
+            <Text style={styles.highlight}>{t("whoUsingHighlight")}</Text> {t("whoUsingTitleEnd")}
           </Text>
           
           <Text style={styles.subtitle}>
-            Segue algumas instruções simples e vamos
-          </Text>
-          <Text style={styles.subtitle}>
-            construir o seu perfil agricargas!
+            {t("whoUsingSubtitle")}
           </Text>
         </View>
 
@@ -46,7 +42,7 @@ export default function WhoUsingScreen({ navigation }: any) {
             onPress={() => navigation.navigate("ChooseProfile")}
             activeOpacity={0.85}
           >
-            <Text style={styles.buttonText}>Avançar →</Text>
+            <Text style={styles.buttonText}>{t("advance")}</Text>
           </TouchableOpacity>
 
           {/* Barra de progresso */}

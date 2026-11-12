@@ -18,7 +18,7 @@ import { useAuth, API_URL } from "../context/AuthContext";
 import * as FileSystem from 'expo-file-system/legacy';
 
 const formatPrice = (value: number): string => {
-  return (value || 0).toLocaleString("pt-AO") + " Kzs";
+  return (value || 0).toLocaleString("en-US") + " Kzs";
 };
 
 export default function CartScreen({ navigation }: any) {
@@ -74,7 +74,7 @@ export default function CartScreen({ navigation }: any) {
           const mimeType = file.mimeType || (file.uri.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg');
           proofBase64 = `data:${mimeType};base64,${base64Content}`;
         } catch (fsError) {
-          console.error("Erro ao ler ficheiro:", fsError);
+          console.error("Failed to read file:", fsError);
         }
       }
 
@@ -98,15 +98,15 @@ export default function CartScreen({ navigation }: any) {
 
       if (res.ok) {
         clearCart();
-        Alert.alert(t("success"), t("orderPlacedSuccess") || "Encomenda realizada com sucesso!");
+        Alert.alert(t("success"), t("orderPlacedSuccess"));
         navigation.navigate("MainMenu");
       } else {
         const error = await res.json();
-        Alert.alert(t("error"), error.message || "Erro ao processar encomenda");
+        Alert.alert(t("error"), error.message || t("processOrderFailed"));
       }
     } catch (error) {
-      console.error("Erro ao enviar encomenda:", error);
-      Alert.alert(t("error"), "Erro de conexão com o servidor");
+      console.error("Failed to send order:", error);
+      Alert.alert(t("error"), t("connectionError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -125,7 +125,7 @@ export default function CartScreen({ navigation }: any) {
       {isSubmitting && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#22C55E" />
-          <Text style={styles.loadingText}>{t("processingOrder") || "Processando Encomenda..."}</Text>
+          <Text style={styles.loadingText}>{t("processingOrder")}</Text>
         </View>
       )}
 
@@ -183,7 +183,7 @@ export default function CartScreen({ navigation }: any) {
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.itemPrice}>
-                  {formatPrice(item.price)} / {item.unit || 'un'}
+                  {formatPrice(item.price)} / {item.unit || t("unit")}
                 </Text>
                 <View style={styles.itemBottomRow}>
                   {/* Quantity Counter */}
@@ -228,7 +228,7 @@ export default function CartScreen({ navigation }: any) {
             style={styles.goShopBtn}
             onPress={() => navigation.navigate("MainMenu")}
           >
-            <Text style={styles.goShopText}>{t("goShop") || "Ver Produtos"}</Text>
+            <Text style={styles.goShopText}>{t("goShop")}</Text>
           </TouchableOpacity>
         </View>
       )}

@@ -8,9 +8,11 @@ import {
   Animated 
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 
 export default function NextStepScreen() {
   const navigation = useNavigation();
+  const { t } = useTranslation();
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export default function NextStepScreen() {
         
         {/* Texto */}
         <Text style={styles.text}>
-          Estamos{'\n'}preparando tudo{'\n'}para si!
+          {t("preparing")}
         </Text>
       </View>
 

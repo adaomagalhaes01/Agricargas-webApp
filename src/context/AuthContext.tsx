@@ -68,7 +68,7 @@ async function authFetch(
     setTokens: (t: AuthTokens | null) => void,
     setUser: (u: User | null) => void,
 ): Promise<Response> {
-    if (!tokens) throw new Error('Não autenticado');
+    if (!tokens) throw new Error('Not authenticated');
 
     const headers: any = {
         'Content-Type': 'application/json',
@@ -118,13 +118,13 @@ async function authFetch(
                     await storage.deleteItem('user_data');
                     setTokens(null);
                     setUser(null);
-                    throw new Error('Sessão expirada. Faça login novamente.');
+                    throw new Error('Session expired. Please sign in again.');
                 }
             } catch (refreshError: any) {
-                if (refreshError.message === 'Sessão expirada. Faça login novamente.') {
+                if (refreshError.message === 'Session expired. Please sign in again.') {
                     throw refreshError;
                 }
-                throw new Error('Erro ao renovar sessão');
+                throw new Error('Failed to refresh session');
             }
         }
     }
@@ -175,7 +175,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             await storage.setItem('user_data', JSON.stringify(userData));
             setUser(userData);
         } catch (error) {
-            console.error('Erro ao processar login Google:', error);
+            console.error('Failed to process Google login:', error);
         } finally {
             setGoogleLoading(false);
         }
@@ -192,18 +192,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     try {
                         setUser(JSON.parse(storedUser));
                     } catch (e) {
-                        console.error('Erro ao parsear storedUser');
+                        console.error('Failed to parse stored user');
                     }
                 }
                 if (storedTokens) {
                     try {
                         setTokens(JSON.parse(storedTokens));
                     } catch (e) {
-                        console.error('Erro ao parsear storedTokens');
+                        console.error('Failed to parse stored tokens');
                     }
                 }
             } catch (error) {
-                console.error('Erro ao carregar dados salvos:', error);
+                console.error('Failed to load saved data:', error);
             } finally {
                 setLoading(false);
                 initialLoadDone.current = true;
@@ -220,7 +220,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const cleanEmail = email.trim() || 'demo@agricargas.ao';
             const userData: User = {
                 id: `local-${Date.now()}`,
-                name: cleanEmail.split('@')[0] || 'Usuário',
+                name: cleanEmail.split('@')[0] || 'User',
                 email: cleanEmail,
                 onboarding_completed: 0,
             };
@@ -246,7 +246,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const cleanEmail = email.trim() || 'demo@agricargas.ao';
             const userData: User = {
                 id: `local-${Date.now()}`,
-                name: name.trim() || cleanEmail.split('@')[0] || 'Usuário',
+                name: name.trim() || cleanEmail.split('@')[0] || 'User',
                 email: cleanEmail,
                 phone,
                 onboarding_completed: 0,
@@ -272,7 +272,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         try {
             await promptAsync();
         } catch (error) {
-            console.error('Falha ao abrir Google Auth:', error);
+            console.error('Failed to open Google Auth:', error);
             setGoogleLoading(false);
         }
     }, [promptAsync]);
@@ -282,7 +282,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const updateProfile = useCallback(async (data: Partial<User>) => {
         try {
             setLoading(true);
-            if (!user) throw new Error('Não autenticado');
+            if (!user) throw new Error('Not authenticated');
 
             const updatedUser: User = { ...user, ...data };
             await storage.setItem('user_data', JSON.stringify(updatedUser));
@@ -304,7 +304,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const completeOnboarding = useCallback(async (data: { profile_type: string; company_nif?: string; company_name?: string }) => {
         try {
             setLoading(true);
-            if (!user) throw new Error('Não autenticado');
+            if (!user) throw new Error('Not authenticated');
 
             const updatedUser: User = {
                 ...user,

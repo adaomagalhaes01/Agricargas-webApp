@@ -8,9 +8,11 @@ import {
   StatusBar,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 
 export default function ChooseProfileScreen() {
   const navigation = useNavigation();
+  const { t } = useTranslation();
 
   return (
     <ImageBackground
@@ -24,14 +26,11 @@ export default function ChooseProfileScreen() {
 
       <View style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.title}>Qual perfil é</Text>
-          <Text style={styles.title}>o Seu?</Text>
+          <Text style={styles.title}>{t("chooseProfileTitle1")}</Text>
+          <Text style={styles.title}>{t("chooseProfileTitle2")}</Text>
           
           <Text style={styles.subtitle}>
-            Selecione uma das opções
-          </Text>
-          <Text style={styles.subtitle}>
-            para prosseguirmos.
+            {t("chooseProfileSubtitle")}
           </Text>
 
           <View style={styles.buttonsContainer}>
@@ -41,7 +40,7 @@ export default function ChooseProfileScreen() {
               activeOpacity={0.85}
             >
               <Text style={styles.companyButtonText}>
-                Empresa
+                {t("company")}
               </Text>
             </TouchableOpacity>
 
@@ -50,7 +49,7 @@ export default function ChooseProfileScreen() {
               onPress={() => navigation.navigate("VendorNIF" as never)}
               activeOpacity={0.85}
             >
-              <Text style={styles.vendorButtonText}>Vendedor</Text>
+              <Text style={styles.vendorButtonText}>{t("vendor")}</Text>
             </TouchableOpacity>
           </View>
         </View>

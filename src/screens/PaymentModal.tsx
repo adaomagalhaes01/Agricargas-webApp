@@ -7,6 +7,7 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  Alert,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
@@ -34,7 +35,7 @@ export default function PaymentModal({
 
   const handlePaymentClick = () => {
     if (!address.trim()) {
-      alert(t("addressRequired") || "Por favor, insira o endereço de entrega");
+      Alert.alert(t("attention"), t("addressRequired"));
       return;
     }
     // Fecha o modal de pagamento primeiro, depois abre o de upload
@@ -96,13 +97,13 @@ export default function PaymentModal({
               </View>
 
               {/* Title */}
-              <Text style={styles.title}>{t("deliveryInfo") || "Informações de Entrega"}</Text>
+              <Text style={styles.title}>{t("deliveryInfo")}</Text>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>{t("deliveryAddress") || "Endereço de Entrega"}</Text>
+                <Text style={styles.label}>{t("deliveryAddress")}</Text>
                 <TextInput
                   style={styles.addressInput}
-                  placeholder={t("addressPlaceholder") || "Ex: Bairro Talatona, Rua 5, Luanda"}
+                  placeholder={t("addressPlaceholder")}
                   value={address}
                   onChangeText={setAddress}
                   multiline

@@ -12,25 +12,27 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "react-i18next";
 
 export default function ForgotPasswordScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const { apiUrl } = useAuth();
+  const { t } = useTranslation();
 
   const handleContinue = async () => {
     const trimmedEmail = email.trim().toLowerCase();
 
     if (!trimmedEmail) {
-      Alert.alert("Erro", "Por favor, insira o seu email.");
+      Alert.alert(t("error"), t("enterEmail"));
       return;
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
-      Alert.alert("Erro", "Por favor, insira um email válido.");
+      Alert.alert(t("error"), t("enterValidEmail"));
       return;
     }
 
@@ -44,18 +46,18 @@ export default function ForgotPasswordScreen({ navigation }: any) {
       const data = await res.json();
 
       if (!res.ok && res.status !== 429) {
-        throw new Error(data.message || "Erro ao enviar código");
+        throw new Error(data.message || t("sendCodeFailed"));
       }
 
       if (res.status === 429) {
-        Alert.alert("Aguarde", data.message);
+        Alert.alert(t("wait"), data.message);
         return;
       }
 
       // Navigate to OTP screen with email
       navigation.navigate("OTPVerification", { email: trimmedEmail });
     } catch (error: any) {
-      Alert.alert("Erro", error.message || "Falha ao enviar código de recuperação.");
+      Alert.alert(t("error"), error.message || t("sendCodeFailed"));
     } finally {
       setLoading(false);
     }
@@ -94,10 +96,9 @@ export default function ForgotPasswordScreen({ navigation }: any) {
         <View style={styles.centerContainer}>
           <View style={styles.content}>
             <View style={styles.titleContainer}>
-              <Text style={styles.title}>Esqueceu a senha?</Text>
+              <Text style={styles.title}>{t("forgotTitle")}</Text>
               <Text style={styles.subtitle}>
-                Não te preocupes, nós te ajudamos a recuperar a sua conta em poucos
-                minutos. Insira o email da sua conta.
+                {t("forgotSubtitle")}
               </Text>
             </View>
 
@@ -106,7 +107,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
                 styles.input,
                 inputFocused && styles.inputFocused
               ]}
-              placeholder="Email"
+              placeholder={t("email")}
               placeholderTextColor="#999"
               value={email}
               onChangeText={setEmail}
@@ -124,7 +125,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.continueButtonText}>Enviar Código</Text>
+                <Text style={styles.continueButtonText}>{t("sendCode")}</Text>
               )}
             </TouchableOpacity>
           </View>

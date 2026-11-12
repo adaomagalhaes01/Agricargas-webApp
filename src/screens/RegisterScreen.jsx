@@ -13,10 +13,12 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "react-i18next";
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
   const { signUp } = useAuth();
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -34,12 +36,12 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {
-      Alert.alert("Erro", "Por favor, preencha todos os campos obrigatórios.");
+      Alert.alert(t("error"), t("fillAllFields"));
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert("Erro", "As senhas não coincidem.");
+      Alert.alert(t("error"), t("passwordsDontMatch"));
       return;
     }
 
@@ -47,7 +49,7 @@ export default function RegisterScreen() {
     try {
       await signUp(name, email, password, phone);
     } catch (error) {
-      Alert.alert("Erro", error.message || "Falha ao criar conta.");
+      Alert.alert(t("error"), error.message || t("registerFailed"));
     } finally {
       setLoading(false);
     }
@@ -68,9 +70,9 @@ export default function RegisterScreen() {
         <View style={styles.centerContainer}>
           {/* Título */}
           <View style={styles.header}>
-            <Text style={styles.title}>Registrar</Text>
+            <Text style={styles.title}>{t("register")}</Text>
             <Text style={styles.subtitle}>
-              Crie sua conta para começar a usar o aplicativo.
+              {t("registerSubtitle")}
             </Text>
           </View>
 
@@ -81,7 +83,7 @@ export default function RegisterScreen() {
                 styles.input,
                 nameFocused && styles.inputFocused
               ]}
-              placeholder="Nome completo"
+              placeholder={t("fullName")}
               placeholderTextColor="#999"
               value={name}
               onChangeText={setName}
@@ -94,7 +96,7 @@ export default function RegisterScreen() {
                 styles.input,
                 phoneFocused && styles.inputFocused
               ]}
-              placeholder="Número de telefone"
+              placeholder={t("phoneNumber")}
               placeholderTextColor="#999"
               keyboardType="phone-pad"
               value={phone}
@@ -108,7 +110,7 @@ export default function RegisterScreen() {
                 styles.input,
                 emailFocused && styles.inputFocused
               ]}
-              placeholder="Email"
+              placeholder={t("email")}
               placeholderTextColor="#999"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -124,7 +126,7 @@ export default function RegisterScreen() {
             ]}>
               <TextInput
                 style={styles.passwordInput}
-                placeholder="Senha"
+                placeholder={t("password")}
                 placeholderTextColor="#999"
                 secureTextEntry={!showPassword}
                 value={password}
@@ -150,7 +152,7 @@ export default function RegisterScreen() {
             ]}>
               <TextInput
                 style={styles.passwordInput}
-                placeholder="Confirmar senha"
+                placeholder={t("confirmPassword")}
                 placeholderTextColor="#999"
                 secureTextEntry={!showConfirmPassword}
                 value={confirmPassword}
@@ -179,15 +181,15 @@ export default function RegisterScreen() {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.registerButtonText}>Registrar</Text>
+                <Text style={styles.registerButtonText}>{t("register")}</Text>
               )}
             </TouchableOpacity>
 
             {/* Link para login */}
             <View style={styles.signupContainer}>
-              <Text style={styles.signupText}>Já tem uma conta? </Text>
+              <Text style={styles.signupText}>{t("alreadyHaveAccount")}</Text>
               <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-                <Text style={styles.signupLink}>Entrar</Text>
+                <Text style={styles.signupLink}>{t("login")}</Text>
               </TouchableOpacity>
             </View>
           </View>

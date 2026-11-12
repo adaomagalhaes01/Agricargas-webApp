@@ -41,11 +41,11 @@ interface PurchaseItem {
 }
 
 const statusConfig: Record<PurchaseStatus, { label: string; color: string; bg: string; icon: string; iconBg: string }> = {
-    delivered: { label: "Entregue", color: "#1B8A4E", bg: "#D4F4E7", icon: "checkmark-circle", iconBg: "#E8F9EF" },
-    confirmed: { label: "Confirmado", color: "#22C55E", bg: "#D4F4E7", icon: "checkmark-circle-outline", iconBg: "#E8F9EF" },
-    shipped: { label: "Enviado", color: "#3B82F6", bg: "#DBEAFE", icon: "car-outline", iconBg: "#EFF6FF" },
-    pending: { label: "Pendente", color: "#D4A017", bg: "#FFF8E1", icon: "time", iconBg: "#FFFCE8" },
-    cancelled: { label: "Cancelado", color: "#E53935", bg: "#FFE5E5", icon: "close-circle", iconBg: "#FFF0F0" },
+    delivered: { label: "Delivered", color: "#1B8A4E", bg: "#D4F4E7", icon: "checkmark-circle", iconBg: "#E8F9EF" },
+    confirmed: { label: "Confirmed", color: "#22C55E", bg: "#D4F4E7", icon: "checkmark-circle-outline", iconBg: "#E8F9EF" },
+    shipped: { label: "Shipped", color: "#3B82F6", bg: "#DBEAFE", icon: "car-outline", iconBg: "#EFF6FF" },
+    pending: { label: "Pending", color: "#D4A017", bg: "#FFF8E1", icon: "time", iconBg: "#FFFCE8" },
+    cancelled: { label: "Cancelled", color: "#E53935", bg: "#FFE5E5", icon: "close-circle", iconBg: "#FFF0F0" },
 };
 
 type FilterType = "todos" | PurchaseStatus;
@@ -177,22 +177,22 @@ export default function PurchaseHistoryScreen() {
 
                 return {
                     id: order.id,
-                    productName: firstItem?.productName || "Encomenda",
-                    quantity: order.items?.length > 1 ? `${order.items.length} itens` : `1 item`,
-                    price: `${(order.total || 0).toLocaleString("pt-AO")} Kzs`,
-                    date: new Date(order.created_at).toLocaleDateString("pt-AO"),
+                    productName: firstItem?.productName || t("order"),
+                    quantity: order.items?.length > 1 ? `${order.items.length} ${t("items")}` : `1 ${t("item")}`,
+                    price: `${(order.total || 0).toLocaleString("en-US")} Kzs`,
+                    date: new Date(order.created_at).toLocaleDateString("en-GB"),
                     status: order.status || "pending",
                     image: productImage ? { uri: productImage } : null,
                     items: order.items,
                     orderNumber: order.id,
                     deliveryAddress: order.delivery_address,
-                    paymentMethod: "Transferência Bancária",
+                    paymentMethod: t("bankTransfer"),
                 };
             });
 
             setPurchases(mapped);
         } catch (error) {
-            console.error("Erro ao carregar histórico:", error);
+            console.error("Failed to load purchase history:", error);
             setPurchases([]);
         } finally {
             setLoading(false);
@@ -228,10 +228,10 @@ export default function PurchaseHistoryScreen() {
 
     const filters: { key: FilterType; label: string }[] = [
         { key: "todos", label: t("all") },
-        { key: "pending", label: "Pendentes" },
-        { key: "shipped", label: "Enviados" },
-        { key: "delivered", label: "Entregues" },
-        { key: "cancelled", label: "Cancelados" },
+        { key: "pending", label: t("pending") },
+        { key: "shipped", label: t("shipped") },
+        { key: "delivered", label: t("delivered") },
+        { key: "cancelled", label: t("cancelled") },
     ];
 
     const openDetail = (item: PurchaseItem) => {
@@ -420,26 +420,26 @@ export default function PurchaseHistoryScreen() {
         const steps = [
             {
                 key: "ordered",
-                label: t("orderPlaced") || "Encomenda realizada",
+                label: t("orderPlaced"),
                 icon: "receipt-outline" as const,
                 completed: true,
             },
             {
                 key: "confirmed",
-                label: t("orderConfirmed") || "Pagamento Confirmado",
+                label: t("orderConfirmed"),
                 icon: "checkmark-outline" as const,
                 completed: status !== "pending" && status !== "cancelled",
             },
             {
                 key: "shipped",
-                label: status === "cancelled" ? (t("orderCancelledStep") || "Cancelada") : (t("orderShipped") || "Enviada"),
+                label: status === "cancelled" ? t("orderCancelledStep") : t("orderShipped"),
                 icon: status === "cancelled" ? ("close-outline" as const) : ("car-outline" as const),
                 completed: status === "delivered" || status === "shipped" || status === "cancelled",
                 isCancelled: status === "cancelled",
             },
             {
                 key: "delivered",
-                label: t("orderDeliveredStep") || "Entregue",
+                label: t("orderDeliveredStep"),
                 icon: "home-outline" as const,
                 completed: status === "delivered",
                 hidden: status === "cancelled",
@@ -572,7 +572,7 @@ export default function PurchaseHistoryScreen() {
                         <View style={styles.summaryLeft}>
                             <Text style={styles.summaryLabel}>{t("totalSpent")}</Text>
                             <Text style={styles.summaryValue}>
-                                {totalSpent.toLocaleString("pt-AO")} Kzs
+                                {totalSpent.toLocaleString("en-US")} Kzs
                             </Text>
                         </View>
                         <View style={styles.summaryRight}>

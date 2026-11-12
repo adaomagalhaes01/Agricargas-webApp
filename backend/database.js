@@ -105,30 +105,61 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_otp_codes_code ON otp_codes(code);
 `);
 
-// Seed Categories if empty
-const categoryCount = db.prepare('SELECT COUNT(*) as count FROM categories').get();
-if (categoryCount.count === 0) {
-  const categories = [
-    { id: '1', name: 'Hortaliças', icon: 'leaf-outline', color: '#22C55E', bg: '#D4F4E7' },
-    { id: '2', name: 'Frutas', icon: 'nutrition-outline', color: '#F59E0B', bg: '#FFF8E1' },
-    { id: '3', name: 'Cereais', icon: 'grid-outline', color: '#8B5CF6', bg: '#EDE9FE' },
-    { id: '4', name: 'Legumes', icon: 'flask-outline', color: '#3B82F6', bg: '#DBEAFE' },
-  ];
+// Seed Categories (English demo catalog)
+const categories = [
+  { id: '1', name: 'Vegetables', icon: 'leaf-outline', color: '#22C55E', bg: '#D4F4E7' },
+  { id: '2', name: 'Fruits', icon: 'nutrition-outline', color: '#F59E0B', bg: '#FFF8E1' },
+  { id: '3', name: 'Cereals', icon: 'grid-outline', color: '#8B5CF6', bg: '#EDE9FE' },
+  { id: '4', name: 'Legumes', icon: 'flask-outline', color: '#3B82F6', bg: '#DBEAFE' },
+];
 
-  const insertCat = db.prepare('INSERT INTO categories (id, name, icon, color, bg) VALUES (?, ?, ?, ?, ?)');
-  categories.forEach(cat => insertCat.run(cat.id, cat.name, cat.icon, cat.color, cat.bg));
-  console.log('🌱 Seeded categories');
-}
+const insertCat = db.prepare('INSERT OR IGNORE INTO categories (id, name, icon, color, bg) VALUES (?, ?, ?, ?, ?)');
+const updateCat = db.prepare('UPDATE categories SET name = ?, icon = ?, color = ?, bg = ? WHERE id = ?');
+categories.forEach(cat => {
+  insertCat.run(cat.id, cat.name, cat.icon, cat.color, cat.bg);
+  updateCat.run(cat.name, cat.icon, cat.color, cat.bg, cat.id);
+});
+console.log('🌱 Seeded categories');
 
-// Seed a sample product if empty
-const productCount = db.prepare('SELECT COUNT(*) as count FROM products').get();
-if (productCount.count === 0) {
-  db.prepare(`
-        INSERT INTO products (id, name, price, category_id, badge, stock, rating, reviews, image)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run('1', 'Tomates Frescos', 10000, '1', 'Novo', 100, 4.8, 24, 'https://images.unsplash.com/photo-1546097759-4bd817f51931?q=80&w=300&auto=format&fit=crop');
-  console.log('🌱 Seeded sample product');
-}
+// Translate legacy demo products to English
+const legacyNames = {
+  'Tomates Frescos': 'Fresh Tomatoes',
+  'Abacate': 'Hass Avocado',
+  'Banana': 'Bananas',
+  'Pão': 'Bread',
+  'Manga': 'Mango',
+  'Couve': 'Kale',
+  'Melão': 'Melon',
+};
+const renameProduct = db.prepare('UPDATE products SET name = ? WHERE name = ?');
+Object.entries(legacyNames).forEach(([from, to]) => renameProduct.run(to, from));
+
+// Seed the English demo catalog (idempotent)
+const img = (id) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=600&q=80`;
+const demoProducts = [
+  ['mock-1', 'Fresh Tomatoes', 1200, '1', img('1546097759-4bd817f51931'), 'Juicy, sun-ripened tomatoes picked fresh from the farm.', 180, 4.8, 124, 'Best Seller'],
+  ['mock-2', 'Hass Avocado', 2500, '2', img('1523049673857-eb18f1d7b578'), 'Creamy Hass avocados, naturally ripened and ready to eat.', 95, 4.7, 89, 'New'],
+  ['mock-3', 'Bananas', 1400, '2', img('1571771894821-ce9b6c11b08e'), 'Sweet, energy-packed bananas from local plantations.', 320, 4.6, 156, 'Best Seller'],
+  ['mock-4', 'Kale', 800, '1', img('1540420773420-3366772f4999'), 'Fresh organic kale with crisp, nutrient-rich leaves.', 210, 4.9, 67, 'Organic'],
+  ['mock-5', 'Mango', 1800, '2', img('1553279768-865429fa0078'), 'Sweet, aromatic mangoes at the peak of ripeness.', 140, 4.8, 98, '10% OFF'],
+  ['mock-6', 'Pineapple', 1600, '2', img('1550258987-190a2d41a8ba'), 'Tropical pineapples with a sweet and tangy flavor.', 110, 4.5, 54, null],
+  ['mock-7', 'Onions', 950, '1', img('1508747703725-719777637510'), 'Firm, full-flavored onions for everyday cooking.', 260, 4.4, 72, null],
+  ['mock-8', 'Bell Peppers', 2100, '1', img('1563565375-f3fdfdbefa83'), 'Colorful bell peppers, crisp and full of vitamins.', 130, 4.7, 61, 'Fresh'],
+  ['mock-9', 'White Maize', 1100, '3', img('1551754655-cd27e38d2076'), 'Premium white maize, dried and ready to mill.', 400, 4.6, 83, 'Best Seller'],
+  ['mock-10', 'Long Grain Rice', 3200, '3', img('1586201375761-83865001e31c'), 'High-quality long grain rice with a fluffy texture.', 275, 4.5, 47, null],
+  ['mock-11', 'Red Beans', 1700, '4', img('1551462147-37885acc36f1'), 'Protein-rich red beans, sorted and cleaned.', 190, 4.7, 59, 'Organic'],
+  ['mock-12', 'Peanuts', 2200, '4', img('1567892737950-30c4db37cd89'), 'Crunchy, naturally roasted peanuts rich in protein.', 165, 4.8, 76, null],
+  ['mock-13', 'Soybeans', 1950, '4', img('1599940824399-b87987ceb72a'), 'High-protein soybeans for healthy meals.', 120, 4.4, 33, 'New'],
+];
+
+const insertProduct = db.prepare(`
+  INSERT OR IGNORE INTO products (id, name, price, category_id, image, description, stock, rating, reviews, badge)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`);
+demoProducts.forEach(p => insertProduct.run(...p));
+// Hide legacy demo rows without media so the English demo catalog is shown cleanly
+db.prepare("UPDATE products SET is_active = 0 WHERE id NOT LIKE 'mock-%' AND (image IS NULL OR image = '')").run();
+console.log('🌱 Seeded demo products');
 
 // Migration: add onboarding_completed column if not exists
 try {

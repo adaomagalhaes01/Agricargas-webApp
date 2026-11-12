@@ -24,6 +24,9 @@ import { useTranslation } from "react-i18next";
 const { width } = Dimensions.get("window");
 
 import { API_URL } from "../context/AuthContext";
+import { mockCategories, mockProducts } from "../data/mockProducts";
+
+const ALL_CATEGORY = "All";
 
 // ── Skeleton Component ──────────────────────────────────────
 const SkeletonPulse = ({ style }: { style: any }) => {
@@ -143,7 +146,7 @@ export default function MainMenuScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [activeCategory, setActiveCategory] = useState("Todos");
+  const [activeCategory, setActiveCategory] = useState(ALL_CATEGORY);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const navigation = useNavigation();
   const { user, signOut } = useAuth();
@@ -166,18 +169,22 @@ export default function MainMenuScreen() {
 
       const [cData, pData] = await Promise.all([cRes.json(), pRes.json()]);
 
+      const remoteCategories = Array.isArray(cData) && cData.length > 0 ? cData : mockCategories;
+      const remoteProducts = Array.isArray(pData) && pData.length > 0 ? pData : mockProducts;
+
       setCategories([
-        { id: "all", name: "Todos", icon: "apps-outline", color: "#EF4444", bg: "#FFE5E5" },
-        ...(Array.isArray(cData) ? cData : []),
+        { id: "all", name: ALL_CATEGORY, icon: "apps-outline", color: "#EF4444", bg: "#FFE5E5" },
+        ...remoteCategories,
       ]);
-      setProducts(Array.isArray(pData) ? pData : []);
+      setProducts(remoteProducts);
     } catch (error) {
-      console.error("Erro ao carregar dados:", error);
-      // Set defaults even on error so UI isn't stuck
+      console.error("Failed to load data:", error);
+      // Use the English demo catalog when the API is unavailable
       setCategories([
-        { id: "all", name: "Todos", icon: "apps-outline", color: "#EF4444", bg: "#FFE5E5" },
+        { id: "all", name: ALL_CATEGORY, icon: "apps-outline", color: "#EF4444", bg: "#FFE5E5" },
+        ...mockCategories,
       ]);
-      setProducts([]);
+      setProducts(mockProducts);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -201,7 +208,7 @@ export default function MainMenuScreen() {
   }, [fetchData]);
 
   const popularProducts = products.filter(
-    (p) => p.badge === "Mais Vendido" || (p.rating ?? 0) >= 4.5
+    (p) => p.badge === "Best Seller" || (p.rating ?? 0) >= 4.5
   );
 
   const handleLanguageSwitch = () => {
@@ -222,7 +229,7 @@ export default function MainMenuScreen() {
   };
 
   const filteredProducts =
-    activeCategory === "Todos"
+    activeCategory === ALL_CATEGORY
       ? products
       : products.filter((p) => p.category === activeCategory);
 
@@ -232,7 +239,7 @@ export default function MainMenuScreen() {
   };
 
   const formatCurrencyLocal = (value: number) => {
-    return `${value.toLocaleString('pt-AO')} Kz`;
+    return `${value.toLocaleString('en-US')} Kz`;
   };
 
   const renderStars = (rating: number) => (
@@ -316,7 +323,7 @@ export default function MainMenuScreen() {
           onPress={() => setFilterModalVisible(false)}
         >
           <View style={styles.filterModalContent}>
-            <Text style={styles.filterModalTitle}>Filtrar por Categoria</Text>
+            <Text style={styles.filterModalTitle}>{t("filterByCategory")}</Text>
             {categories.map((cat) => (
               <TouchableOpacity
                 key={cat.id}
@@ -370,7 +377,7 @@ export default function MainMenuScreen() {
               </View>
             )}
             <Text style={styles.greetingText}>
-              Olá, {user?.name ? user.name.split(" ")[0] : t("user")}
+              {t("hello")} {user?.name ? user.name.split(" ")[0] : t("user")}
             </Text>
           </View>
           <TouchableOpacity style={styles.langBtn} onPress={handleLanguageSwitch}>
@@ -501,7 +508,7 @@ export default function MainMenuScreen() {
             {/* Products by category */}
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>
-                {activeCategory === "Todos"
+                {activeCategory === ALL_CATEGORY
                   ? t("allProducts")
                   : activeCategory}
               </Text>

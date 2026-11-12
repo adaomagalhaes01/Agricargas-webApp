@@ -32,7 +32,7 @@ export default function ProductDetailScreen() {
     if (!product) {
         return (
             <SafeAreaView style={styles.container}>
-                <Text>Produto não encontrado</Text>
+                <Text>{t("productNotFound")}</Text>
             </SafeAreaView>
         );
     }
@@ -48,14 +48,14 @@ export default function ProductDetailScreen() {
     const handleAddToCart = () => {
         addToCart(product, quantity);
         Alert.alert(
-            t("success") || "Sucesso",
-            `${quantity}x ${product.name} ${t("addedToCartMsg") || "adicionados ao carrinho"}`,
+            t("success"),
+            `${quantity}x ${product.name} ${t("addedToCartMsg")}`,
             [{ text: t("ok"), onPress: () => navigation.goBack() }]
         );
     };
 
     const formatCurrencyLocal = (value: number) => {
-        return `${(value || 0).toLocaleString('pt-AO')} Kz`;
+        return `${(value || 0).toLocaleString('en-US')} Kz`;
     };
 
     return (
@@ -104,7 +104,7 @@ export default function ProductDetailScreen() {
                         <View style={{ flex: 1 }}>
                             <Text style={styles.productName}>{product.name}</Text>
                             <Text style={styles.productSubtitle}>
-                                {product.description || "Produto fresco e de alta qualidade"}
+                                {product.description || t("freshProduct")}
                             </Text>
                         </View>
                         {product.badge && (
@@ -118,7 +118,7 @@ export default function ProductDetailScreen() {
                     <View style={styles.locationRow}>
                         <View style={styles.locationItem}>
                             <Ionicons name="location-outline" size={14} color="#999" />
-                            <Text style={styles.locationText}>Angola</Text>
+                            <Text style={styles.locationText}>{product.location || "Angola"}</Text>
                         </View>
                         <View style={styles.locationItem}>
                             <Ionicons name="star" size={14} color="#FFD700" />
@@ -136,12 +136,12 @@ export default function ProductDetailScreen() {
                         </View>
                         <View style={styles.statDivider} />
                         <View style={styles.statCard}>
-                            <Text style={styles.statValue}>1 kg</Text>
+                            <Text style={styles.statValue}>{product.weight || "1 kg"}</Text>
                             <Text style={styles.statLabel}>{t("weight")}</Text>
                         </View>
                         <View style={styles.statDivider} />
                         <View style={styles.statCard}>
-                            <Text style={styles.statValue}>{product.category || "Hortaliças"}</Text>
+                            <Text style={styles.statValue}>{product.category || t("categoryVegetables")}</Text>
                             <Text style={styles.statLabel}>{t("categoryLabel")}</Text>
                         </View>
                     </View>
@@ -160,7 +160,7 @@ export default function ProductDetailScreen() {
                             <Text
                                 style={[styles.tabBtnText, activeTab === "delivery" && styles.tabBtnTextActive]}
                             >
-                                Entrega
+                                {t("delivery")}
                             </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
@@ -175,7 +175,7 @@ export default function ProductDetailScreen() {
                             <Text
                                 style={[styles.tabBtnText, activeTab === "pickup" && styles.tabBtnTextActive]}
                             >
-                                Retirada
+                                {t("pickup")}
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -183,8 +183,7 @@ export default function ProductDetailScreen() {
                     {/* Description */}
                     <Text style={styles.sectionTitle}>{t("description")}</Text>
                     <Text style={styles.descriptionText}>
-                        {product.fullDescription ||
-                            `Produto agrícola de alta qualidade, cultivado em Angola. ${product.name} frescos, selecionados e prontos para consumo. Ideal para uso doméstico e comercial. Garantimos a frescura e qualidade do produto desde a colheita até a entrega.`}
+                        {product.fullDescription || product.description || t("productDescriptionFallback")}
                     </Text>
 
                     {/* Supplier Card */}
@@ -195,7 +194,7 @@ export default function ProductDetailScreen() {
                         </View>
                         <View style={styles.supplierInfo}>
                             <Text style={styles.supplierName}>
-                                {product.supplier || "Fazenda Verde Ltda"}
+                                {product.supplier || "Green Farm Ltd"}
                             </Text>
                             <Text style={styles.supplierLocation}>
                                 {product.supplierLocation || "Luanda, Angola"}
@@ -227,7 +226,7 @@ export default function ProductDetailScreen() {
                     </View>
                     <View>
                         <Text style={styles.totalLabel}>{formatCurrencyLocal(totalPrice)}</Text>
-                        <Text style={styles.totalSub}>Total {quantity} item(s)</Text>
+                        <Text style={styles.totalSub}>{t("totalItemsLabel", { count: quantity })}</Text>
                     </View>
                 </View>
                 <TouchableOpacity
