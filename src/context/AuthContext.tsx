@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useRef } from 'react';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import * as SecureStore from 'expo-secure-store';
+import { storage } from '../lib/storage';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -9,7 +9,14 @@ WebBrowser.maybeCompleteAuthSession();
 import { Platform } from 'react-native';
 
 const MACHINE_IP = '172.20.10.5'; // Seu IP atual detectado
-export const API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:5000' : `http://${MACHINE_IP}:5000`;
+const ENV_API_URL = process.env.EXPO_PUBLIC_API_URL;
+export const API_URL =
+    ENV_API_URL ||
+    (Platform.OS === 'web'
+        ? 'http://localhost:5000'
+        : Platform.OS === 'android'
+            ? 'http://10.0.2.2:5000'
+            : `http://${MACHINE_IP}:5000`);
 
 // Nota: Para iOS Simulator use 'http://localhost:5000'
 // Se estiver usando Android físico, mude a lógica acima para sempre usar o MACHINE_IP.
@@ -94,11 +101,11 @@ async function authFetch(
                     };
 
                     // Save new tokens
-                    await SecureStore.setItemAsync('auth_tokens', JSON.stringify(newTokens));
+                    await storage.setItem('auth_tokens', JSON.stringify(newTokens));
                     setTokens(newTokens);
 
                     if (refreshData.user) {
-                        await SecureStore.setItemAsync('user_data', JSON.stringify(refreshData.user));
+                        await storage.setItem('user_data', JSON.stringify(refreshData.user));
                         setUser(refreshData.user);
                     }
 
@@ -107,8 +114,8 @@ async function authFetch(
                     res = await fetch(url, { ...options, headers });
                 } else {
                     // Refresh failed — logout
-                    await SecureStore.deleteItemAsync('auth_tokens');
-                    await SecureStore.deleteItemAsync('user_data');
+                    await storage.deleteItem('auth_tokens');
+                    await storage.deleteItem('user_data');
                     setTokens(null);
                     setUser(null);
                     throw new Error('Sessão expirada. Faça login novamente.');
@@ -165,7 +172,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 photo: userInfo.picture,
             };
 
-            await SecureStore.setItemAsync('user_data', JSON.stringify(userData));
+            await storage.setItem('user_data', JSON.stringify(userData));
             setUser(userData);
         } catch (error) {
             console.error('Erro ao processar login Google:', error);
@@ -178,8 +185,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     useEffect(() => {
         async function loadStoredData() {
             try {
-                const storedUser = await SecureStore.getItemAsync('user_data');
-                const storedTokens = await SecureStore.getItemAsync('auth_tokens');
+                const storedUser = await storage.getItem('user_data');
+                const storedTokens = await storage.getItem('auth_tokens');
 
                 if (storedUser) {
                     try {
@@ -206,41 +213,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     // ─── Sign In ────────────────────────────────────────────
+    // Modo demonstração: qualquer email e senha são aceites.
     const signIn = useCallback(async (email: string, password: string) => {
-        const url = `${API_URL}/api/login`;
         try {
             setLoading(true);
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            }).catch(err => {
-                throw new Error(`Erro de Conexão: Não foi possível alcançar ${url}. Verifique se o servidor está ligado e se o seu celular está no mesmo Wi-Fi que o seu PC.`);
-            });
-
-            let data: any = {};
-            try {
-                data = await res.json();
-            } catch (jsonErr) {
-                throw new Error('Resposta inválida do servidor (não é JSON).');
-            }
-
-            if (!res.ok) throw new Error(data.message || 'Erro ao entrar');
-
-            const userData: User = data.user;
+            const cleanEmail = email.trim() || 'demo@agricargas.ao';
+            const userData: User = {
+                id: `local-${Date.now()}`,
+                name: cleanEmail.split('@')[0] || 'Usuário',
+                email: cleanEmail,
+                onboarding_completed: 0,
+            };
             const authTokens: AuthTokens = {
-                token: data.token,
-                refreshToken: data.refreshToken,
+                token: 'local-token',
+                refreshToken: '',
             };
 
-            await SecureStore.setItemAsync('user_data', JSON.stringify(userData));
-            await SecureStore.setItemAsync('auth_tokens', JSON.stringify(authTokens));
+            await storage.setItem('user_data', JSON.stringify(userData));
+            await storage.setItem('auth_tokens', JSON.stringify(authTokens));
 
             setTokens(authTokens);
             setUser(userData);
-        } catch (error: any) {
-            console.error('Login Error:', error);
-            throw error;
         } finally {
             setLoading(false);
         }
@@ -250,34 +243,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const signUp = useCallback(async (name: string, email: string, password: string, phone?: string) => {
         try {
             setLoading(true);
-            const res = await fetch(`${API_URL}/api/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password, phone }),
-            });
-
-            let data: any = {};
-            try {
-                data = await res.json();
-            } catch (jsonErr) {
-                throw new Error('Resposta inválida do servidor ao registrar.');
-            }
-
-            if (!res.ok) throw new Error(data.message || 'Erro ao registrar');
-
-            const userData: User = data.user;
+            const cleanEmail = email.trim() || 'demo@agricargas.ao';
+            const userData: User = {
+                id: `local-${Date.now()}`,
+                name: name.trim() || cleanEmail.split('@')[0] || 'Usuário',
+                email: cleanEmail,
+                phone,
+                onboarding_completed: 0,
+            };
             const authTokens: AuthTokens = {
-                token: data.token,
-                refreshToken: data.refreshToken,
+                token: 'local-token',
+                refreshToken: '',
             };
 
-            await SecureStore.setItemAsync('user_data', JSON.stringify(userData));
-            await SecureStore.setItemAsync('auth_tokens', JSON.stringify(authTokens));
+            await storage.setItem('user_data', JSON.stringify(userData));
+            await storage.setItem('auth_tokens', JSON.stringify(authTokens));
 
             setTokens(authTokens);
             setUser(userData);
-        } catch (error: any) {
-            throw error;
         } finally {
             setLoading(false);
         }
@@ -295,114 +278,54 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, [promptAsync]);
 
     // ─── Update Profile ─────────────────────────────────────
+    // Modo demonstração: os dados são guardados apenas localmente.
     const updateProfile = useCallback(async (data: Partial<User>) => {
         try {
             setLoading(true);
-            const res = await authFetch(
-                `${API_URL}/api/me`,
-                {
-                    method: 'PUT',
-                    body: JSON.stringify(data),
-                },
-                tokens,
-                setTokens,
-                setUser,
-            );
-            const result = await res.json();
+            if (!user) throw new Error('Não autenticado');
 
-            if (!res.ok) throw new Error(result.message || 'Erro ao atualizar perfil');
-
-            await SecureStore.setItemAsync('user_data', JSON.stringify(result.user));
-            setUser(result.user);
-        } catch (error: any) {
-            throw error;
+            const updatedUser: User = { ...user, ...data };
+            await storage.setItem('user_data', JSON.stringify(updatedUser));
+            setUser(updatedUser);
         } finally {
             setLoading(false);
         }
-    }, [tokens]);
+    }, [user]);
 
     // ─── Change Password ────────────────────────────────────
     const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
-        try {
-            setLoading(true);
-            const res = await authFetch(
-                `${API_URL}/api/me/password`,
-                {
-                    method: 'PUT',
-                    body: JSON.stringify({ currentPassword, newPassword }),
-                },
-                tokens,
-                setTokens,
-                setUser,
-            );
-            const result = await res.json();
-
-            if (!res.ok) throw new Error(result.message || 'Erro ao alterar senha');
-
-            // After password change, logout
-            await signOut();
-        } catch (error: any) {
-            throw error;
-        } finally {
-            setLoading(false);
-        }
-    }, [tokens]);
+        // Modo demonstração: qualquer senha é aceite, nada para alterar.
+        void currentPassword;
+        void newPassword;
+    }, []);
 
     // ─── Complete Onboarding ────────────────────────────────
+    // Modo demonstração: conclui sempre localmente, sem chamar o backend.
     const completeOnboarding = useCallback(async (data: { profile_type: string; company_nif?: string; company_name?: string }) => {
         try {
             setLoading(true);
-            const res = await authFetch(
-                `${API_URL}/api/me/onboarding`,
-                {
-                    method: 'POST',
-                    body: JSON.stringify(data),
-                },
-                tokens,
-                setTokens,
-                setUser,
-            );
-            const result = await res.json();
+            if (!user) throw new Error('Não autenticado');
 
-            if (!res.ok) throw new Error(result.message || 'Erro ao completar onboarding');
-
-            await SecureStore.setItemAsync('user_data', JSON.stringify(result.user));
-            setUser(result.user);
-        } catch (error: any) {
-            throw error;
+            const updatedUser: User = {
+                ...user,
+                ...data,
+                onboarding_completed: 1,
+            };
+            await storage.setItem('user_data', JSON.stringify(updatedUser));
+            setUser(updatedUser);
         } finally {
             setLoading(false);
         }
-    }, [tokens]);
+    }, [user]);
 
     // ─── Sign Out ───────────────────────────────────────────
     const signOut = useCallback(async () => {
-        try {
-            const currentTokens = tokens;
+        setTokens(null);
+        setUser(null);
 
-            // 🛑 Immediate clear state (Termina a sessão imediatamente no App)
-            setTokens(null);
-            setUser(null);
-
-            // 🔥 Async remove from storage (Pode demorar uns ms)
-            SecureStore.deleteItemAsync('user_data').catch(() => { });
-            SecureStore.deleteItemAsync('auth_tokens').catch(() => { });
-
-            if (currentTokens?.refreshToken) {
-                // background call (Opcional, não precisa de await se quisermos logout instantâneo)
-                fetch(`${API_URL}/api/logout`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${currentTokens.token}`
-                    },
-                    body: JSON.stringify({ refreshToken: currentTokens.refreshToken }),
-                }).catch(() => { });
-            }
-        } catch (error) {
-            console.error('Erro no logout persistente:', error);
-        }
-    }, [tokens]);
+        storage.deleteItem('user_data').catch(() => { });
+        storage.deleteItem('auth_tokens').catch(() => { });
+    }, []);
 
     return (
         <AuthContext.Provider value={{

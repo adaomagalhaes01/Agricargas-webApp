@@ -13,20 +13,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
 
 export default function LoginScreen({ navigation }: any) {
-  const { signIn, signInWithGoogle, user, googleLoading: contextGoogleLoading } = useAuth();
+  const { signIn, signInWithGoogle, googleLoading: contextGoogleLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // Monitora se o usuário foi autenticado via Google (ou login normal)
-  React.useEffect(() => {
-    if (user) {
-      navigation.navigate("SplashScreen");
-    }
-  }, [user]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {

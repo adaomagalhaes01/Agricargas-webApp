@@ -16,7 +16,7 @@ import { useAuth } from "../context/AuthContext";
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
-  const { signUp, user } = useAuth();
+  const { signUp } = useAuth();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -31,13 +31,6 @@ export default function RegisterScreen() {
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // Monitora autenticação para navegar
-  React.useEffect(() => {
-    if (user) {
-      navigation.navigate("SplashScreen");
-    }
-  }, [user]);
 
   const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {

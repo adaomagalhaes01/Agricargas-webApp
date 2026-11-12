@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useMemo } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import { storage } from '../lib/storage';
 
 export interface CartItem {
     id: string;
@@ -28,7 +28,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     useEffect(() => {
         const loadCart = async () => {
-            const storedCart = await SecureStore.getItemAsync('cart_items');
+            const storedCart = await storage.getItem('cart_items');
             if (storedCart) {
                 setItems(JSON.parse(storedCart));
             }
@@ -37,7 +37,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     useEffect(() => {
-        SecureStore.setItemAsync('cart_items', JSON.stringify(items));
+        storage.setItem('cart_items', JSON.stringify(items));
     }, [items]);
 
     const addToCart = (product: any, quantity: number = 1) => {
